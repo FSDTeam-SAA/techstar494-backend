@@ -3,6 +3,7 @@ const userRouter = require("../modules/user/user.router");
 const authRouter = require("../modules/auth/auth.router");
 const sendMessageRouter = require("../modules/contract/contract.router");
 const productRouter = require("../modules/product/product.router");
+const blogRouter = require("../modules/blog/blog.router");
 const router = Router();
 
 const moduleRouter = [
@@ -20,8 +21,12 @@ const moduleRouter = [
   },
   {
     path: "/products",
-    router: productRouter
-  }
+    router: productRouter,
+  },
+  {
+    path: "/blog",
+    router: blogRouter,
+  },
 ];
 
 moduleRouter.forEach((route) => {
