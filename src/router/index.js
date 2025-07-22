@@ -3,6 +3,9 @@ const userRouter = require("../modules/user/user.router");
 const authRouter = require("../modules/auth/auth.router");
 const sendMessageRouter = require("../modules/contract/contract.router");
 const productRouter = require("../modules/product/product.router");
+const orderRouter = require("../modules/order/order.router");
+const cartRouter = require("../modules/cart/cart.router");
+
 const router = Router();
 
 const moduleRouter = [
@@ -21,6 +24,14 @@ const moduleRouter = [
   {
     path: "/products",
     router: productRouter
+  },
+  {
+    path: "/order",
+    router: orderRouter
+  },
+  {
+    path: "/cart",
+    router: cartRouter
   }
 ];
 
