@@ -1,4 +1,4 @@
-const Subscriber = require('../models/Subscriber');
+const Subscriber = require('../../modules/subscriber/subscriber.model');
 const nodemailer = require('nodemailer');
 
 // Configure Nodemailer transporter
@@ -10,7 +10,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Subscribe to newsletter
 const subscribe = async (req, res) => {
     try {
         const { email } = req.body;

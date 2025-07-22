@@ -4,7 +4,7 @@ const {
     unsubscribe,
     getSubscribers,
     sendEmailToSubscribers
-} = require('../controllers/subscriberController');
+} = require('../../modules/subscriber/subscriber.controller');
 // const { authenticateAdmin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
