@@ -11,19 +11,19 @@ router.post("/forgot-password", authController.forgotPassword);
 
 router.post(
   "/verify-token",
-  auth(USER_ROLE.employee, USER_ROLE.company_admin, USER_ROLE.admin),
+  auth(USER_ROLE.admin, USER_ROLE.user),
   authController.verifyToken
 );
 
 router.post(
   "/reset-password",
-  auth(USER_ROLE.employee, USER_ROLE.company_admin, USER_ROLE.admin),
+  auth(USER_ROLE.admin, USER_ROLE.user),
   authController.resetPassword
 );
 
 router.post(
   "/change-password",
-  auth(USER_ROLE.employee, USER_ROLE.company_admin, USER_ROLE.admin),
+  auth(USER_ROLE.admin, USER_ROLE.user),
   authController.changePassword
 );
 

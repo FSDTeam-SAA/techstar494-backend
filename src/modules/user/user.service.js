@@ -16,6 +16,15 @@ const createNewAccountInDB = async (payload) => {
     throw new Error("Password must be at least 6 characters long");
   }
 
+  if (payload.points) {
+    throw new Error("You can't set points during registration");
+  }
+
+  // Check age verification........
+  if (payload.ageVerification === false) {
+    throw new Error("You are under 21, cannot register an account");
+  }
+
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedOtp = await bcrypt.hash(otp, 10);
   const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
@@ -102,7 +111,7 @@ const verifyUserEmail = async (payload, email) => {
       $unset: { otp: "", otpExpires: "" },
     },
     { new: true }
-  ).select("-password -otp -otpExpires");
+  ).select("username email role");
   return result;
 };
 
@@ -126,7 +135,7 @@ const resendOtpCode = async ({ email }) => {
       otpExpires,
     },
     { new: true }
-  ).select("-password -otp -otpExpires");
+  ).select("username email role");
 
   await sendEmail({
     to: existingUser.email,
@@ -138,13 +147,15 @@ const resendOtpCode = async ({ email }) => {
 
 const getAllUsersFromDb = async () => {
   const users = await User.find({ isVerified: true }).select(
-    "-password -otp -otpExpires"
+    "username email role firstName lastName imageLink points createdAt updatedAt"
   );
   return users;
 };
 
 const getMyProfileFromDb = async (email) => {
-  const user = await User.findOne(email).select("-password -otp -otpExpires");
+  const user = await User.findOne(email).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires -isVerified -ageVerification"
+  );
   if (!user) throw new Error("User not found");
   return user;
 };
@@ -160,13 +171,19 @@ const updateUserProfile = async (payload, email, file) => {
     payload.imageLink = secure_url;
   }
 
+  if (payload.points) {
+    throw new Error("You can't update points, buy products to earn points");
+  }
+
   const updatedUser = await User.findOneAndUpdate(
     {
       email,
     },
     payload,
     { new: true }
-  ).select("-password -otp -otpExpires");
+  ).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires -isVerified -ageVerification"
+  );
   return updatedUser;
 };
 

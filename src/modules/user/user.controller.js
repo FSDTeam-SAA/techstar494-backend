@@ -85,6 +85,20 @@ const getMyProfile = async (req, res) => {
   }
 };
 
+// const addAgeVerification = async (req, res) => {
+//   try {
+//     const { email } = req.user;
+//     const result = await userService.addAgeVerification(req.body, email);
+//     return res.status(200).json({
+//       success: true,
+//       message: "Age verification added successfully",
+//       data: result,
+//     });
+//   } catch (error) {
+//     return res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
 const updateUserProfile = async (req, res) => {
   try {
     const { email } = req.user;
