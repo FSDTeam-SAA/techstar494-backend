@@ -7,7 +7,6 @@ const jwt = require("jsonwebtoken");
 const verificationCodeTemplate = require("../../utils/verificationCodeTemplate");
 const sendEmail = require("../../utils/sendEmail");
 
-
 const loginUser = async (payload) => {
   const user = await User.findOne({ email: payload.email }).select("+password");
   if (!user) {
@@ -16,6 +15,10 @@ const loginUser = async (payload) => {
 
   if (!user.isVerified) {
     throw new Error("Please verify your email address first");
+  }
+
+  if (payload.ageVerification === false) {
+    throw new Error("You are under 21, cannot login an account");
   }
 
   const isPasswordValid = await bcrypt.compare(payload.password, user.password);
@@ -27,8 +30,6 @@ const loginUser = async (payload) => {
   delete userObj.password;
   delete userObj.resetPasswordOtp;
   delete userObj.resetPasswordOtpExpires;
-  delete userObj.verificationOtp;
-  delete userObj.verificationOtpExpires;
   delete userObj.otp;
   delete userObj.otpExpires;
 
@@ -228,8 +229,6 @@ const changePassword = async (payload, email) => {
   );
   return result;
 };
-
-
 
 const authService = {
   loginUser,
