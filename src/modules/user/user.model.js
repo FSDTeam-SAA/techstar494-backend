@@ -4,10 +4,6 @@ const bcrypt = require("bcrypt");
 
 const userModel = new Schema(
   {
-    name: {
-      type: String,
-      required: [true, "Name is required"],
-    },
     email: {
       type: String,
       required: true,
@@ -19,7 +15,7 @@ const userModel = new Schema(
     },
     phone: {
       type: String,
-      required: [true, "Phone is required"],
+      default: null,
       unique: [true, "Phone number must be unique"],
     },
     isVerified: {
@@ -31,23 +27,7 @@ const userModel = new Schema(
     otpExpires: { type: Date, default: null },
     resetPasswordOtp: { type: String, default: null },
     resetPasswordOtpExpires: { type: Date, default: null },
-    role: {
-      type: String,
-      enum: ["company_admin", "admin"],
-      default: "company_admin",
-    },
-    shop: {
-      type: Schema.Types.ObjectId,
-      ref: "Shop",
-    },
-    isShopCreated: {
-      type: Boolean,
-      default: false,
-    },
-    employeeCount: {
-      type: Number,
-      default: 0,
-    }
+    
   },
   { timestamps: true, versionKey: false }
 );
