@@ -16,6 +16,15 @@ const createNewAccountInDB = async (payload) => {
     throw new Error("Password must be at least 6 characters long");
   }
 
+  if (payload.points) {
+    throw new Error("You can't set points during registration");
+  }
+
+  // Check age verification........
+  if (payload.ageVerification === false) {
+    throw new Error("You are under 21, cannot register an account");
+  }
+
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedOtp = await bcrypt.hash(otp, 10);
   const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
@@ -160,6 +169,10 @@ const updateUserProfile = async (payload, email, file) => {
     const path = file?.path;
     const { secure_url } = await sendImageToCloudinary(imageName, path);
     payload.imageLink = secure_url;
+  }
+
+  if (payload.points) {
+    throw new Error("You can't update points, buy products to earn points");
   }
 
   const updatedUser = await User.findOneAndUpdate(

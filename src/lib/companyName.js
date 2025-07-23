@@ -1,3 +1,3 @@
-const companyName = "FTFDesignCo";
+const companyName = "Grand Purp";
 
 module.exports = { companyName };

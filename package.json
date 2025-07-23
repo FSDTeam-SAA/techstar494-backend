@@ -21,6 +21,7 @@
     "express-validator": "^7.2.1",
     "fs": "^0.0.1-security",
     "http-status": "^2.1.0",
+    "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
     "mongoose": "^8.16.4",
