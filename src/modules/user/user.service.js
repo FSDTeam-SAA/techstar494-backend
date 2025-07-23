@@ -102,7 +102,7 @@ const verifyUserEmail = async (payload, email) => {
       $unset: { otp: "", otpExpires: "" },
     },
     { new: true }
-  ).select("-password -otp -otpExpires");
+  ).select("username email role");
   return result;
 };
 
@@ -126,7 +126,7 @@ const resendOtpCode = async ({ email }) => {
       otpExpires,
     },
     { new: true }
-  ).select("-password -otp -otpExpires");
+  ).select("username email role");
 
   await sendEmail({
     to: existingUser.email,
@@ -138,13 +138,15 @@ const resendOtpCode = async ({ email }) => {
 
 const getAllUsersFromDb = async () => {
   const users = await User.find({ isVerified: true }).select(
-    "-password -otp -otpExpires"
+    "username email role firstName lastName imageLink points createdAt updatedAt"
   );
   return users;
 };
 
 const getMyProfileFromDb = async (email) => {
-  const user = await User.findOne(email).select("-password -otp -otpExpires");
+  const user = await User.findOne(email).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires -isVerified -ageVerification"
+  );
   if (!user) throw new Error("User not found");
   return user;
 };
@@ -166,7 +168,9 @@ const updateUserProfile = async (payload, email, file) => {
     },
     payload,
     { new: true }
-  ).select("-password -otp -otpExpires");
+  ).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires -isVerified -ageVerification"
+  );
   return updatedUser;
 };
 
