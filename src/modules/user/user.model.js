@@ -56,7 +56,7 @@ const userModel = new Schema(
     },
     texId: {
       type: String,
-      default: null,
+      default: null, 
     },
     points: {
       type: Number,
