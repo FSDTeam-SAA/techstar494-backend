@@ -7,6 +7,7 @@ const orderRouter = require("../modules/order/order.router");
 const cartRouter = require("../modules/cart/cart.router");
 const blogRouter = require("../modules/blog/blog.router");
 const privacyRouter = require("../modules/privacy/privacy.router");
+const termsAndConditionsRouter = require("../modules/termsAndConditions/termsAndConditions.router");
 
 const router = Router();
 
@@ -44,6 +45,10 @@ const moduleRouter = [
   {
     path: "/privacy",
     router: privacyRouter,
+  },
+  {
+    path: "/terms-and-conditions",
+    router: termsAndConditionsRouter,
   },
 ];
 
