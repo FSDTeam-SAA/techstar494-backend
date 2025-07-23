@@ -4,9 +4,17 @@ const bcrypt = require("bcrypt");
 
 const userModel = new Schema(
   {
-    name: {
+    firstName: {
       type: String,
-      required: [true, "Name is required"],
+      default: null,
+    },
+    lastName: {
+      type: String,
+      default: null,
+    },
+    userName: {
+      type: String,
+      required: [true, "Username is required"],
     },
     email: {
       type: String,
@@ -26,6 +34,34 @@ const userModel = new Schema(
       type: Boolean,
       default: false,
     },
+    ageVerification: {
+      type: Boolean,
+      default: false,
+    },
+    country: {
+      type: String,
+      default: null,
+    },
+    state: {
+      type: String,
+      default: null,
+    },
+    city: {
+      type: String,
+      default: null,
+    },
+    address: {
+      type: String,
+      default: null,
+    },
+    texId: {
+      type: String,
+      default: null,
+    },
+    points: {
+      type: Number,
+      default: 0,
+    },
     imageLink: { type: String, default: null },
     otp: { type: String, default: null },
     otpExpires: { type: Date, default: null },
@@ -33,21 +69,9 @@ const userModel = new Schema(
     resetPasswordOtpExpires: { type: Date, default: null },
     role: {
       type: String,
-      enum: ["company_admin", "admin"],
-      default: "company_admin",
+      enum: ["user", "admin"],
+      default: "user",
     },
-    shop: {
-      type: Schema.Types.ObjectId,
-      ref: "Shop",
-    },
-    isShopCreated: {
-      type: Boolean,
-      default: false,
-    },
-    employeeCount: {
-      type: Number,
-      default: 0,
-    }
   },
   { timestamps: true, versionKey: false }
 );
