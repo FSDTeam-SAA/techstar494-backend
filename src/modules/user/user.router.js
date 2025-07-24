@@ -52,5 +52,11 @@ router.put(
   userController.updateUserProfile
 );
 
+router.put(
+  "/delete-profile",
+  auth(USER_ROLE.admin, USER_ROLE.user),
+  userController.deleteUserProfile
+);
+
 const userRouter = router;
 module.exports = userRouter;
