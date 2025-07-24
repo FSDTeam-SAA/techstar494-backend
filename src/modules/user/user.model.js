@@ -62,6 +62,10 @@ const userModel = new Schema(
       type: Number,
       default: 0,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     imageLink: { type: String, default: null },
     otp: { type: String, default: null },
     otpExpires: { type: Date, default: null },

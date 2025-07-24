@@ -1,3 +1,4 @@
+const { StatusCodes } = require("http-status-codes");
 const config = require("../../config");
 const userService = require("./user.service");
 
@@ -85,20 +86,6 @@ const getMyProfile = async (req, res) => {
   }
 };
 
-// const addAgeVerification = async (req, res) => {
-//   try {
-//     const { email } = req.user;
-//     const result = await userService.addAgeVerification(req.body, email);
-//     return res.status(200).json({
-//       success: true,
-//       message: "Age verification added successfully",
-//       data: result,
-//     });
-//   } catch (error) {
-//     return res.status(400).json({ success: false, message: error.message });
-//   }
-// };
-
 const updateUserProfile = async (req, res) => {
   try {
     const { email } = req.user;
@@ -118,6 +105,23 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
+const deleteUserProfile = async (req, res) => {
+  try {
+    const { email } = req.user;
+    const result = await userService.deleteUserProfile(email);
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Your profile has been deleted successfully",
+      data: result,
+    });
+  } catch (error) {
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
 const userController = {
   createNewAccount,
   verifyEmail,
@@ -125,6 +129,7 @@ const userController = {
   getAllUsers,
   getMyProfile,
   updateUserProfile,
+  deleteUserProfile,
 };
 
 module.exports = userController;

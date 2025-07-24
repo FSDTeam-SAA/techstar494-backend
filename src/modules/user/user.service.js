@@ -187,6 +187,20 @@ const updateUserProfile = async (payload, email, file) => {
   return updatedUser;
 };
 
+const deleteUserProfile = async (email) => {
+  const user = await User.findOne({ email });
+  if (!user) throw new Error("User not found");
+
+  const result = await User.findByIdAndUpdate(
+    user._id,
+    { isActive: false },
+    { new: true }
+  ).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires -isVerified -ageVerification"
+  );
+  return result;
+};
+
 const userService = {
   createNewAccountInDB,
   verifyUserEmail,
@@ -194,6 +208,7 @@ const userService = {
   getAllUsersFromDb,
   getMyProfileFromDb,
   updateUserProfile,
+  deleteUserProfile,
 };
 
 module.exports = userService;
