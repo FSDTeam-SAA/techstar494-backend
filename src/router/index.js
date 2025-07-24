@@ -8,6 +8,7 @@ const cartRouter = require("../modules/cart/cart.router");
 const blogRouter = require("../modules/blog/blog.router");
 const privacyRouter = require("../modules/privacy/privacy.router");
 const termsAndConditionsRouter = require("../modules/termsAndConditions/termsAndConditions.router");
+const refundPolicyRouter = require("../modules/refundPolicy/refundPolicy.router");
 
 const router = Router();
 
@@ -49,6 +50,10 @@ const moduleRouter = [
   {
     path: "/terms-and-conditions",
     router: termsAndConditionsRouter,
+  },
+  {
+    path: "/refund-policy",
+    router: refundPolicyRouter,
   },
 ];
 
