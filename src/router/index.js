@@ -25,7 +25,6 @@ const moduleRouter = [
   },
   {
     path: "/products",
-
     router: productRouter,
   },
   {
