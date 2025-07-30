@@ -1,19 +1,25 @@
 const { Schema, model } = require("mongoose");
 
-const couponMakingSchema = new Schema({
-  couponCode: {
-    type: String,
-    required: true,
+const couponMakingSchema = new Schema(
+  {
+    couponCode: {
+      type: String,
+      required: true,
+    },
+    discount: {
+      type: Number,
+      required: true,
+    },
+    timeValidation: {
+      type: String,
+      required: true,
+    },
   },
-  discount: {
-    type: Number,
-    required: true,
-  },
-  timeValidation: {
-    type: String,
-    required: true,
-  },
-});
+  {
+    timestamps: true,
+    versionKey: false,
+  }
+);
 
 const couponMaking = model("CouponMaking", couponMakingSchema);
 module.exports = couponMaking;
