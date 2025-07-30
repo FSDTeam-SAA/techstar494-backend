@@ -56,7 +56,7 @@ const userModel = new Schema(
     },
     texId: {
       type: String,
-      default: null, 
+      default: null,
     },
     points: {
       type: Number,
@@ -65,6 +65,10 @@ const userModel = new Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isPaid: {
+      type: Boolean,
+      default: false,
     },
     imageLink: { type: String, default: null },
     otp: { type: String, default: null },

@@ -6,9 +6,7 @@ const productRouter = require("../modules/product/product.router");
 const orderRouter = require("../modules/order/order.router");
 const cartRouter = require("../modules/cart/cart.router");
 const blogRouter = require("../modules/blog/blog.router");
-const privacyRouter = require("../modules/privacy/privacy.router");
-const termsAndConditionsRouter = require("../modules/termsAndConditions/termsAndConditions.router");
-const refundPolicyRouter = require("../modules/refundPolicy/refundPolicy.router");
+const couponMakingRouter = require("../modules/couponMaking/couponMaking.router");
 
 const router = Router();
 
@@ -44,16 +42,8 @@ const moduleRouter = [
     router: blogRouter,
   },
   {
-    path: "/privacy",
-    router: privacyRouter,
-  },
-  {
-    path: "/terms-and-conditions",
-    router: termsAndConditionsRouter,
-  },
-  {
-    path: "/refund-policy",
-    router: refundPolicyRouter,
+    path: "/coupon-making",
+    router: couponMakingRouter,
   },
 ];
 
