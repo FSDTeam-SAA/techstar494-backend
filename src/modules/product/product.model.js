@@ -9,6 +9,7 @@ const priceSchema = new mongoose.Schema({
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    batch: { type: String },
     description: { type: String },
     disclaimers: { type: String },
     benefits: [{ type: String }],
@@ -18,7 +19,6 @@ const productSchema = new mongoose.Schema(
       type: String,
       enum: ["Gummies", "Prerolls", "Edibles", "Vapes", "Flower", "Beverage"],
     },
-
     experiences: [
       {
         type: String,
@@ -33,13 +33,18 @@ const productSchema = new mongoose.Schema(
         ],
       },
     ],
-
     dosage: {
       type: String,
       enum: ["Low Potency", "Medium Potency", "High Potency"],
     },
     coas: [{ type: String }],
-    certification: { type: String },
+    // certification: { type: String },
+    restrictedStates: [
+      {
+        state: { type: String, required: true },
+        expirationDate: { type: Date, required: true },
+      },
+    ],
   },
   {
     timestamps: true,
