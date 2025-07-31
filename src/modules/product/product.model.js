@@ -1,10 +1,21 @@
 const mongoose = require("mongoose");
 
-const priceSchema = new mongoose.Schema({
-  unit: { type: String, required: true }, // e.g. "ct", "g", "ml"
-  quantity: { type: Number, required: true },
-  price: { type: Number, required: true },
-});
+const priceSchema = new mongoose.Schema(
+  {
+    unit: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    price: { type: Number, required: true },
+  },
+  { _id: false }
+);
+
+const restrictedStateSchema = new mongoose.Schema(
+  {
+    state: { type: String, required: true },
+    expirationDate: { type: Date, required: true },
+  },
+  { _id: false }
+);
 
 const productSchema = new mongoose.Schema(
   {
@@ -14,7 +25,7 @@ const productSchema = new mongoose.Schema(
     disclaimers: { type: String },
     benefits: [{ type: String }],
     prices: [priceSchema],
-    photo: { type: String },
+    photo: [{ type: String }],
     category: {
       type: String,
       enum: ["Gummies", "Prerolls", "Edibles", "Vapes", "Flower", "Beverage"],
@@ -38,16 +49,11 @@ const productSchema = new mongoose.Schema(
       enum: ["Low Potency", "Medium Potency", "High Potency"],
     },
     coas: [{ type: String }],
-    // certification: { type: String },
-    restrictedStates: [
-      {
-        state: { type: String, required: true },
-        expirationDate: { type: Date, required: true },
-      },
-    ],
+    restrictedStates: [restrictedStateSchema],
   },
   {
     timestamps: true,
+    versionKey: false,
   }
 );
 
