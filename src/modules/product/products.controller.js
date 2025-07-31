@@ -52,11 +52,17 @@ const createProduct = async (req, res, next) => {
     });
 
     const savedProduct = await newProduct.save();
-    res.status(201).json(savedProduct);
+
+    res.status(200).json({
+      success: true,
+      message: "Product created successfully",
+      data: savedProduct,
+    });
   } catch (error) {
     next(error);
   }
 };
+
 const getProducts = async (req, res, next) => {
   try {
     const {
@@ -123,6 +129,7 @@ const getProducts = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      message: "Products fetched successfully",
       data: products,
       count: products.length,
       total,
@@ -140,7 +147,12 @@ const getProductById = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    res.status(200).json(product);
+
+    res.status(200).json({
+      success: true,
+      message: "Product get successfully",
+      data: product,
+    });
   } catch (error) {
     next(error);
   }
@@ -150,6 +162,7 @@ const updateProduct = async (req, res, next) => {
   try {
     const {
       name,
+      batch,
       description,
       disclaimers,
       benefits,
@@ -157,58 +170,88 @@ const updateProduct = async (req, res, next) => {
       category,
       experiences,
       dosage,
-      coas,
-      certification,
+      restrictedStates,
     } = req.body;
 
-    let photoUrl;
-    if (req.file) {
-      photoUrl = await handleFileUpload(req.file);
+    const { id } = req.params;
+    const files = req.files || {};
+    const photoFiles = Array.isArray(files.photo) ? files.photo : [];
+    const coasFiles = Array.isArray(files.coas) ? files.coas : [];
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
+    // Upload new photo files if provided
+    let uploadedPhotos = [];
+    for (const file of photoFiles) {
+      const secure_url = await handleFileUpload(file);
+      uploadedPhotos.push(secure_url);
+    }
+
+    // Upload new COAs if provided
+    let uploadedCoas = [];
+    for (const file of coasFiles) {
+      const secure_url = await handleFileUpload(file);
+      uploadedCoas.push(secure_url);
+    }
+
+    // Safely parse incoming data
     const parsedBenefits = Array.isArray(benefits)
       ? benefits
       : benefits?.split(",") || undefined;
-    const parsedPrices = Array.isArray(prices)
-      ? prices
-      : prices
-      ? JSON.parse(prices)
+
+    const parsedPrices = prices
+      ? Array.isArray(prices)
+        ? prices
+        : JSON.parse(prices)
       : undefined;
+
     const parsedExperiences = Array.isArray(experiences)
       ? experiences
       : experiences?.split(",") || undefined;
-    const parsedCoas = Array.isArray(coas)
-      ? coas
-      : coas?.split(",") || undefined;
 
+    const parsedRestrictedStates = restrictedStates
+      ? JSON.parse(restrictedStates)
+      : undefined;
+
+    // Build the update object dynamically
     const updateData = {
-      name,
-      description,
-      disclaimers,
-      benefits: parsedBenefits,
-      prices: parsedPrices,
-      category,
-      experiences: parsedExperiences,
-      dosage,
-      coas: parsedCoas,
-      certification,
+      ...(name && { name }),
+      ...(batch && { batch }),
+      ...(description && { description }),
+      ...(disclaimers && { disclaimers }),
+      ...(parsedBenefits && { benefits: parsedBenefits }),
+      ...(parsedPrices && { prices: parsedPrices }),
+      ...(category && { category }),
+      ...(parsedExperiences && { experiences: parsedExperiences }),
+      ...(dosage && { dosage }),
+      ...(parsedRestrictedStates && {
+        restrictedStates: parsedRestrictedStates,
+      }),
     };
 
-    if (photoUrl) {
-      updateData.photo = photoUrl;
+    if (uploadedPhotos.length > 0) {
+      updateData.photo = uploadedPhotos;
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedProduct) {
-      return res.status(404).json({ message: "Product not found" });
+    if (uploadedCoas.length > 0) {
+      updateData.coas = uploadedCoas;
     }
 
-    res.status(200).json(updatedProduct);
+    const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Product updated successfully",
+      data: updatedProduct,
+    });
   } catch (error) {
     next(error);
   }
