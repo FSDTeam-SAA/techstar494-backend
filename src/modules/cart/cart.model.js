@@ -6,30 +6,25 @@ const cartItemSchema = new mongoose.Schema({
     ref: "Product",
     required: true,
   },
-  selectedPrice: {
-    type: mongoose.Schema.Types.ObjectId, // refers to price subdoc in Product
-    required: true,
-  },
   quantity: {
     type: Number,
     required: true,
     default: 1,
     min: 1,
   },
-});
+}, { _id: false });
 
 const cartSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      unique: true, // One cart per user
+      ref: "User"
     },
     items: [cartItemSchema],
   },
   {
     timestamps: true,
+    versionKey: false,
   }
 );
 
