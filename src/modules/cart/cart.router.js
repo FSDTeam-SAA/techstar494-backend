@@ -16,7 +16,7 @@ router.post("/addToCart", auth(USER_ROLE.user), addToCart);
 router.get("/", auth(USER_ROLE.user), getMyCartItems);
 // router.get("/", getCart);
 router.put("/:itemId", updateCartItem);
-router.delete("/:itemId", removeFromCart);
+router.delete("/:itemId", auth(USER_ROLE.user), removeFromCart);
 router.delete("/", clearCart);
 
 module.exports = router;
