@@ -7,6 +7,7 @@ const orderRouter = require("../modules/order/order.router");
 const cartRouter = require("../modules/cart/cart.router");
 const blogRouter = require("../modules/blog/blog.router");
 const couponMakingRouter = require("../modules/couponMaking/couponMaking.router");
+const paymentRouter = require("../modules/payment/payment.router");
 
 const router = Router();
 
@@ -44,6 +45,11 @@ const moduleRouter = [
     path: "/coupon-making",
     router: couponMakingRouter,
   },
+  {
+    path: "/payment",
+    router: paymentRouter,
+    
+  }
 ];
 
 moduleRouter.forEach((route) => {
