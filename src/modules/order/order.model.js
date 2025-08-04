@@ -1,39 +1,42 @@
 const mongoose = require("mongoose");
 
-const orderItemSchema = new mongoose.Schema(
-  {
-    product: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-      required: true,
-    },
-    selectedPrice: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-    },
-    quantity: { type: Number, required: true },
-    unitPrice: { type: Number, required: true },
-    totalPrice: { type: Number, required: true },
-  },
-  { _id: false }
-);
-
 const orderSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+    },
+    couponId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CouponMaking",
+    },
+    unit: {
+      type: String,
+      required: true,
+      enum: ["pc", "ct", "gm"],
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    pricePerUnit: {
+      type: Number,
       required: true,
     },
-    items: [orderItemSchema],
-    subtotal: { type: Number, required: true },
-    shipping: { type: Number, required: true },
-    total: { type: Number, required: true },
+    totalAmount: {
+      type: Number,
+    },
     billingInfo: {
       fullName: String,
       address: String,
       email: String,
       phone: String,
+      isSaved: Boolean,
     },
     status: {
       type: String,
