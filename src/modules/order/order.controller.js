@@ -120,7 +120,6 @@ const getUserOrders = async (req, res) => {
   }
 };
 
-// Get order by ID
 const getOrderById = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -147,6 +146,36 @@ const getOrderById = async (req, res) => {
   }
 };
 
+const getSaveBillingInfo = async (req, res) => {
+  try {
+    const { email } = req.user;
+    const user = await User.findOne({ email });
+    if (!user) throw new Error("User not found");
+
+    const billingInfoOrder = await Order.findOne({
+      userId: user._id,
+      "billingInfo.isSaved": true,
+    }).populate({
+      path: "userId",
+      select: "firstName lastName email",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Billing info fetched successfully",
+      data: {
+        billingInfo: billingInfoOrder.billingInfo,
+        user: billingInfoOrder.userId,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      error,
+    });
+  }
+};
 
 const updateOrderStatus = async (req, res) => {
   try {
@@ -179,7 +208,7 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
-// Cancel order
+//TODO: IT's NOT do form my side because i don't have any idea about it. After discussion i will do it
 const cancelOrder = async (req, res) => {
   try {
     const order = await Order.findOne({
@@ -214,4 +243,5 @@ module.exports = {
   getOrderById,
   updateOrderStatus,
   cancelOrder,
+  getSaveBillingInfo,
 };
