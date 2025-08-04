@@ -61,7 +61,8 @@ const createOrder = async (req, res) => {
 
     await newOrder.save();
 
-    // 4. Reduce stock AFTER order saved
+    // TODO: there i add a function when my order quantity 0 then i removed from product price. If you want to remove it then you have to change the code here.
+    //TODO: OR you can also update the quantity when you update product. It will be easy to manage.[It's depends on frontend developers]
     priceEntry.quantity -= quantity;
     if (priceEntry.quantity === 0) {
       const indexToRemove = product.prices.findIndex((p) => p.unit === unit);
@@ -97,18 +98,26 @@ const createOrder = async (req, res) => {
 // Get user's orders
 const getUserOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.user._id })
-      .sort({ createdAt: -1 })
-      .populate({
-        path: "items.product",
-        select: "name photo",
-      });
+    const { email } = req.user;
+    const user = await User.findOne({ email });
+    if (!user) throw new Error("User not found");
 
-    res.status(200).json(orders);
+    const orders = await Order.find({ userId: user._id }).populate({
+      path: "product",
+      select: "name photo category",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Orders fetched successfully",
+      data: orders,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching orders", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      error,
+    });
   }
 };
 
