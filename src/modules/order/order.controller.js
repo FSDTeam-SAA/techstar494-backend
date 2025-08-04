@@ -95,7 +95,6 @@ const createOrder = async (req, res) => {
   }
 };
 
-// Get user's orders
 const getUserOrders = async (req, res) => {
   try {
     const { email } = req.user;
@@ -124,11 +123,9 @@ const getUserOrders = async (req, res) => {
 // Get order by ID
 const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findOne({
-      _id: req.params.orderId,
-      userId: req.user._id,
-    }).populate({
-      path: "items.product",
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId).populate({
+      path: "product",
       select: "name photo category",
     });
 
@@ -136,15 +133,21 @@ const getOrderById = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    res.status(200).json(order);
+    return res.status(200).json({
+      success: true,
+      message: "Order fetched successfully",
+      data: order,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching order", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      error,
+    });
   }
 };
 
-// Update order status (admin only)
+
 const updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -164,11 +167,15 @@ const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    res.status(200).json({ message: "Order status updated", order });
-  } catch (error) {
     res
-      .status(500)
-      .json({ message: "Error updating order status", error: error.message });
+      .status(200)
+      .json({ success: true, message: "Order status updated", order });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      error,
+    });
   }
 };
 
