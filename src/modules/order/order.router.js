@@ -15,6 +15,11 @@ router.post("/create-order", auth(USER_ROLE.user), createOrder);
 router.get("/", auth(USER_ROLE.user), getUserOrders);
 router.get("/:orderId", getOrderById);
 router.put("/:orderId/cancel", cancelOrder);
-router.put("/admin/:orderId", updateOrderStatus);
+
+router.put(
+  "/status/:orderId",
+  auth(USER_ROLE.user, USER_ROLE.admin),
+  updateOrderStatus
+);
 
 module.exports = router;
