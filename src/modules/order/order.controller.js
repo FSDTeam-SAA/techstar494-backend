@@ -2,91 +2,95 @@ const Order = require("../../modules/order/order.model");
 const Cart = require("../../modules/cart/cart.model");
 const Product = require("../../modules/product/product.model");
 const User = require("../user/user.model");
+const couponMaking = require("../couponMaking/couponMaking.model");
 
 const createOrder = async (req, res) => {
   try {
-    const { userId } = req.user;
-    const { billingInfo, paymentMethod } = req.body;
+    const { email } = req.user;
+    const { billingInfo, paymentMethod, productId, quantity, unit, couponId } =
+      req.body;
 
-    if (!billingInfo || !paymentMethod) {
-      return res.status(400).json({ message: "Missing required fields" });
+    const user = await User.findOne({ email });
+    if (!user) throw new Error("User not found");
+
+    const product = await Product.findById(productId);
+    if (!product) throw new Error("Product not found");
+
+    // 1. Get and validate price
+    const priceEntry = product.prices.find((p) => p.unit === unit);
+    if (!priceEntry) throw new Error(`No pricing available for unit: ${unit}`);
+
+    if (priceEntry.quantity < quantity) {
+      throw new Error(
+        `Only ${priceEntry.quantity} units available for unit: ${unit}`
+      );
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    const basePrice = priceEntry.price * quantity;
+    let discount = 0;
+    let finalAmount = basePrice;
+
+    // 2. Validate coupon (if given)
+    if (couponId) {
+      const coupon = await couponMaking.findById(couponId);
+      if (!coupon) throw new Error("Coupon not found");
+
+      const now = new Date();
+      if (new Date(coupon.timeValidation) < now) {
+        throw new Error("Coupon has expired");
+      }
+
+      discount = (basePrice * coupon.discount) / 100;
+      finalAmount = basePrice - discount;
     }
 
-    if (user.isVerified === false) {
-      return res
-        .status(400)
-        .json({ message: "Please verify your email address first" });
-    }
-
-    if (user.ageVerification === false) {
-      return res
-        .status(400)
-        .json({ message: "You are under 21, cannot place an order" });
-    }
-
-    const cart = await Cart.findOne({ userId }).populate({
-      path: "items.product",
-      select: "name prices",
-    });
-
-    if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ message: "Cart is empty" });
-    }
-
-    let subtotal = 0;
-    const items = await Promise.all(
-      cart.items.map(async (item) => {
-        const product = item.product;
-        const priceObj = product.prices.id(item.selectedPrice);
-
-        if (!priceObj) {
-          throw new Error(`Price not found for product ${product._id}`);
-        }
-
-        const itemTotal = priceObj.price * item.quantity;
-        subtotal += itemTotal;
-
-        return {
-          product: product._id,
-          selectedPrice: item.selectedPrice,
-          quantity: item.quantity,
-          unitPrice: priceObj.price,
-          totalPrice: itemTotal,
-        };
-      })
-    );
-
-    const shipping = 5.99;
-    const total = subtotal + shipping;
-
-    const order = new Order({
-      userId: req.user._id,
-      items,
-      subtotal,
-      shipping,
-      total,
+    // 3. Create order
+    const newOrder = new Order({
+      userId: user._id,
+      product: product._id,
+      unit,
+      quantity,
+      pricePerUnit: priceEntry.price,
       billingInfo,
       paymentMethod,
-      paymentStatus: paymentMethod === "COD" ? "Unpaid" : "Pending",
+      paymentStatus: "Unpaid",
+      totalAmount: finalAmount,
+      discountAmount: discount,
+      couponUsed: couponId || null,
     });
 
-    await order.save();
+    await newOrder.save();
 
-    await Cart.findOneAndUpdate(
-      { userId: req.user._id },
-      { $set: { items: [] } }
-    );
+    // 4. Reduce stock AFTER order saved
+    priceEntry.quantity -= quantity;
+    if (priceEntry.quantity === 0) {
+      const indexToRemove = product.prices.findIndex((p) => p.unit === unit);
+      product.prices.splice(indexToRemove, 1);
+    }
+    await product.save();
 
-    res.status(201).json({ message: "Order created successfully", order });
+    // 5. Populate and return
+    const result = await Order.findById(newOrder._id)
+      .populate({
+        path: "product",
+        select: "name photo category",
+      })
+      .populate({
+        path: "userId",
+        select: "firstName lastName email",
+      });
+
+    return res.status(200).json({
+      success: true,
+      message: "Order processed successfully",
+      data: result,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error creating order", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      error,
+    });
   }
 };
 
