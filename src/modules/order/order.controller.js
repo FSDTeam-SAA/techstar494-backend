@@ -209,32 +209,45 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
-//TODO: IT's NOT do form my side because i don't have any idea about it. After discussion i will do it
 const cancelOrder = async (req, res) => {
   try {
-    const order = await Order.findOne({
-      _id: req.params.orderId,
-      userId: req.user._id,
+    const { email } = req.user;
+    const { orderId } = req.params;
+
+    const user = await User.findOne({ email });
+    if (!user) throw new Error("User not found");
+
+    const order = await Order.findOne({ _id: orderId, userId: user._id });
+    if (!order) {
+      throw new Error("your Order not found");
+    }
+
+    if (order.status === "Cancelled") {
+      throw new Error("Order already cancelled");
+    } else if (order.status === "Delivered") {
+      throw new Error("Order already delivered");
+    }
+
+    const result = await Order.findOneAndUpdate(
+      { _id: orderId, userId: user._id },
+      { status: "Cancelled" },
+      { new: true }
+    ).populate({
+      path: "product",
+      select: "name photo category",
     });
 
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    if (order.status !== "Pending") {
-      return res.status(400).json({
-        message: "Order can only be cancelled if it's in Pending status",
-      });
-    }
-
-    order.status = "Cancelled";
-    await order.save();
-
-    res.status(200).json({ message: "Order cancelled successfully", order });
+    return res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+      data: result,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error cancelling order", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      error,
+    });
   }
 };
 
