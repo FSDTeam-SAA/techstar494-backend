@@ -17,12 +17,17 @@ router.get("/", auth(USER_ROLE.user), getUserOrders);
 router.get("/billing-info", auth(USER_ROLE.user), getSaveBillingInfo);
 
 router.get("/:orderId", getOrderById);
-router.put("/:orderId/cancel", cancelOrder);
 
 router.put(
   "/status/:orderId",
   auth(USER_ROLE.user, USER_ROLE.admin),
   updateOrderStatus
+);
+
+router.put(
+  "/cancel/:orderId",
+  auth(USER_ROLE.user, USER_ROLE.admin),
+  cancelOrder
 );
 
 module.exports = router;
