@@ -1,8 +1,8 @@
 const express = require("express");
 const {
-  getCart,
+  // getCart,
   addToCart,
-  updateCartItem,
+  updateCartItemQuantity,
   removeFromCart,
   clearCart,
   getMyCartItems,
@@ -15,8 +15,8 @@ const router = express.Router();
 router.post("/addToCart", auth(USER_ROLE.user), addToCart);
 router.get("/", auth(USER_ROLE.user), getMyCartItems);
 // router.get("/", getCart);
-router.put("/:itemId", updateCartItem);
-router.delete("/:itemId", auth(USER_ROLE.user), removeFromCart);
-router.delete("/", clearCart);
+router.put("/:cartId", auth(USER_ROLE.user), updateCartItemQuantity);
+router.delete("/remove/:cartId", auth(USER_ROLE.user), removeFromCart);
+router.delete("/all-clear", auth(USER_ROLE.user), clearCart);
 
 module.exports = router;
