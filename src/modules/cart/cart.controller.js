@@ -2,59 +2,78 @@ const Cart = require("../../modules/cart/cart.model");
 const Product = require("../../modules/product/product.model");
 const User = require("../user/user.model");
 
-
 const addToCart = async (req, res) => {
   try {
     const { email } = req.user;
-    const { productId, quantity } = req.body;
+    const { productId, unit, quantity, pricePerUnit } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (!existingUser) throw new Error("User not found");
+    // 1. Find user
+    const user = await User.findOne({ email });
+    if (!user) throw new Error("User not found");
 
+    // 2. Find product
     const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+    if (!product) throw new Error("Product not found");
+
+    // 3. Validate unit and pricePerUnit
+    const priceEntry = product.prices.find(
+      (p) => p.unit === unit && p.price === pricePerUnit
+    );
+    if (!priceEntry) {
+      throw new Error(
+        `Price is not valid for unit ${unit} and price ${pricePerUnit}`
+      );
     }
 
-    const selectedPrice = product.prices[0];
-    if (!selectedPrice) {
-      return res.status(400).json({ message: "No price available for this product" });
+    // 4. Check quantity available
+    if (priceEntry.quantity < quantity) {
+      throw new Error(
+        `Only ${priceEntry.quantity} quantity available for ${unit} unit`
+      );
     }
 
-    const isExistingCart = await Cart.findOne({ "items.product": productId });
-    if (isExistingCart) {
-      return res.status(400).json({ message: "Item already exists in cart" });
-    }
-    //TODO: 1 if quantity is add there some validation will be added. and also add in product model.
-    const result = await Cart.create({
-      userId: existingUser._id,
-      items: [
-        {
-          product: productId,
-          quantity: quantity || 1,
-        },
-      ],
+    // 5. Check if same product + unit + price already exists
+    const existingCartItem = await Cart.findOne({
+      userId: user._id,
+      product: productId,
+      unit,
+      pricePerUnit,
     });
-    const populatedCart = await Cart.findById(result._id)
+
+    if (existingCartItem) {
+      existingCartItem.quantity += quantity;
+      await existingCartItem.save();
+    } else {
+      await Cart.create({
+        userId: user._id,
+        product: productId,
+        unit,
+        quantity,
+        pricePerUnit,
+      });
+    }
+
+    // 6. Return all cart items
+    const cart = await Cart.find({ userId: user._id })
+      .populate({
+        path: "product",
+        select: "name photo",
+      })
       .populate({
         path: "userId",
         select: "firstName lastName email",
-      })
-      .populate({
-        path: "items.product",
-        select: "name prices photo",
       });
 
-    res.status(201).json({
+    return res.status(200).json({
       success: true,
-      message: "Item added to cart",
-      cart: populatedCart,
+      message: "Item added to cart successfully",
+      data: cart,
     });
-
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Error adding item to cart", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -85,14 +104,12 @@ const getMyCartItems = async (req, res) => {
       message: "Cart items fetched successfully",
       cart,
     });
-
-
   } catch (error) {
     res
       .status(500)
       .json({ message: "Error fetching cart items", error: error.message });
   }
-}
+};
 
 const updateCartItem = async (req, res) => {
   try {
@@ -151,7 +168,6 @@ const removeFromCart = async (req, res) => {
       success: true,
       message: "Item removed from cart",
     });
-
   } catch (error) {
     res
       .status(500)
