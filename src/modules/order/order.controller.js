@@ -218,9 +218,7 @@ const cancelOrder = async (req, res) => {
     if (!user) throw new Error("User not found");
 
     const order = await Order.findOne({ _id: orderId, userId: user._id });
-    if (!order) {
-      throw new Error("your Order not found");
-    }
+    if (!order) throw new Error("Your order not found");
 
     if (order.status === "Cancelled") {
       throw new Error("Order already cancelled");
@@ -228,6 +226,7 @@ const cancelOrder = async (req, res) => {
       throw new Error("Order already delivered");
     }
 
+    // 1. Update order status
     const result = await Order.findOneAndUpdate(
       { _id: orderId, userId: user._id },
       { status: "Cancelled" },
@@ -236,6 +235,17 @@ const cancelOrder = async (req, res) => {
       path: "product",
       select: "name photo category",
     });
+
+    // 2. Restore quantity in product.prices[]
+    const product = await Product.findById(order.product);
+    if (!product) throw new Error("Associated product not found");
+
+    const priceEntry = product.prices.find((p) => p.unit === order.unit);
+    if (!priceEntry) throw new Error(`Unit ${order.unit} not found in product`);
+
+    priceEntry.quantity += order.quantity; 
+
+    await product.save();
 
     return res.status(200).json({
       success: true,
