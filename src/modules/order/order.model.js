@@ -10,9 +10,12 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
     },
-    couponId: {
+    cartId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "CouponMaking",
+      ref: "Cart",
+    },
+    couponCode: {
+      type: String,
     },
     unit: {
       type: String,

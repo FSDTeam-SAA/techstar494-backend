@@ -4,11 +4,17 @@ const Product = require("../../modules/product/product.model");
 const User = require("../user/user.model");
 const couponMaking = require("../couponMaking/couponMaking.model");
 
-const createOrder = async (req, res) => {
+const createOrderByProduct = async (req, res) => {
   try {
     const { email } = req.user;
-    const { billingInfo, paymentMethod, productId, quantity, unit, couponId } =
-      req.body;
+    const {
+      billingInfo,
+      paymentMethod,
+      productId,
+      quantity,
+      unit,
+      couponCode,
+    } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) throw new Error("User not found");
@@ -16,13 +22,16 @@ const createOrder = async (req, res) => {
     const product = await Product.findById(productId);
     if (!product) throw new Error("Product not found");
 
-    // 1. Get and validate price
     const priceEntry = product.prices.find((p) => p.unit === unit);
     if (!priceEntry) throw new Error(`No pricing available for unit: ${unit}`);
 
+    if (priceEntry.quantity === 0) {
+      throw new Error(`This ${unit} unit is not available for purchase`);
+    }
+
     if (priceEntry.quantity < quantity) {
       throw new Error(
-        `Only ${priceEntry.quantity} units available for unit: ${unit}`
+        `Only ${priceEntry.quantity} quantity available for ${unit} unit`
       );
     }
 
@@ -30,10 +39,9 @@ const createOrder = async (req, res) => {
     let discount = 0;
     let finalAmount = basePrice;
 
-    // 2. Validate coupon (if given)
-    if (couponId) {
-      const coupon = await couponMaking.findById(couponId);
-      if (!coupon) throw new Error("Coupon not found");
+    if (couponCode) {
+      const coupon = await couponMaking.findOne({ couponCode });
+      if (!coupon) throw new Error("coupon not valid");
 
       const now = new Date();
       if (new Date(coupon.timeValidation) < now) {
@@ -44,7 +52,6 @@ const createOrder = async (req, res) => {
       finalAmount = basePrice - discount;
     }
 
-    // 3. Create order
     const newOrder = new Order({
       userId: user._id,
       product: product._id,
@@ -56,21 +63,15 @@ const createOrder = async (req, res) => {
       paymentStatus: "Unpaid",
       totalAmount: finalAmount,
       discountAmount: discount,
-      couponUsed: couponId || null,
+      couponUsed: couponCode || null,
     });
 
     await newOrder.save();
 
-    // TODO: there i add a function when my order quantity 0 then i removed from product price. If you want to remove it then you have to change the code here.
-    //TODO: OR you can also update the quantity when you update product. It will be easy to manage.[It's depends on frontend developers]
+    // 4. Update product quantity
     priceEntry.quantity -= quantity;
-    if (priceEntry.quantity === 0) {
-      const indexToRemove = product.prices.findIndex((p) => p.unit === unit);
-      product.prices.splice(indexToRemove, 1);
-    }
     await product.save();
 
-    // 5. Populate and return
     const result = await Order.findById(newOrder._id)
       .populate({
         path: "product",
@@ -238,7 +239,7 @@ const cancelOrder = async (req, res) => {
 };
 
 module.exports = {
-  createOrder,
+  createOrderByProduct,
   getUserOrders,
   getOrderById,
   updateOrderStatus,
