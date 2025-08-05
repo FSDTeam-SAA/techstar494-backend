@@ -96,6 +96,8 @@ const createOrderByProduct = async (req, res) => {
   }
 };
 
+const createOrderByCart = async (req, res) => {};
+
 const getUserOrders = async (req, res) => {
   try {
     const { email } = req.user;
@@ -243,7 +245,7 @@ const cancelOrder = async (req, res) => {
     const priceEntry = product.prices.find((p) => p.unit === order.unit);
     if (!priceEntry) throw new Error(`Unit ${order.unit} not found in product`);
 
-    priceEntry.quantity += order.quantity; 
+    priceEntry.quantity += order.quantity;
 
     await product.save();
 
@@ -263,6 +265,7 @@ const cancelOrder = async (req, res) => {
 
 module.exports = {
   createOrderByProduct,
+  createOrderByCart,
   getUserOrders,
   getOrderById,
   updateOrderStatus,
