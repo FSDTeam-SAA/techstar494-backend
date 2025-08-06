@@ -11,5 +11,5 @@ router.post("/create", createFadDisclaimer);
 router.get("/", getFadDisclaimer);
 router.put("/:id", updateFadDisclaimer);
 
-const refundPolicyRouter = router;
-module.exports = refundPolicyRouter;
+const fdaDisclaimerRouter = router;
+module.exports = fdaDisclaimerRouter;

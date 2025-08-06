@@ -20,7 +20,7 @@ const getFadDisclaimer = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Refund policy fetched successfully",
+      message: "FDA Disclaimer fetched successfully",
       data: result,
     });
   } catch (error) {
@@ -38,7 +38,7 @@ const updateFadDisclaimer = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Refund policy updated successfully",
+      message: "FDA Disclaimer updated successfully",
       data: result,
     });
   } catch (error) {
