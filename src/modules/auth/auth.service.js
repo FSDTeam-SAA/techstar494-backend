@@ -21,6 +21,10 @@ const loginUser = async (payload) => {
     throw new Error("You are under 21, cannot login an account");
   }
 
+  if (user.isActive === false) {
+    throw new Error("Your account has been deactivated");
+  }
+
   const isPasswordValid = await bcrypt.compare(payload.password, user.password);
   if (!isPasswordValid) {
     throw new Error("Invalid password");

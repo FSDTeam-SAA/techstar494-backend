@@ -1,21 +1,23 @@
 const mongoose = require("mongoose");
 
-const legalDocumentSchema = new mongoose.Schema({
-  documentType: {
-    type: String,
-    required: true,
-    enum: ["privacy_policy", "terms_conditions", "legality", "refund_policy"],
-    unique: true,
+const legalDocumentSchema = new mongoose.Schema(
+  {
+    documentType: {
+      type: String,
+      required: true,
+      enum: ["privacy_policy", "terms_conditions", "legality", "refund_policy"],
+      unique: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
   },
-  content: {
-    type: String,
-    required: true,
-  },
-  lastUpdated: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  {
+    timestamps: true,
+    versionKey: false,
+  }
+);
 
 const LegalDocument =
   mongoose.models.LegalDocument ||

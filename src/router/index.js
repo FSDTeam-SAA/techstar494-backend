@@ -8,6 +8,9 @@ const cartRouter = require("../modules/cart/cart.router");
 const blogRouter = require("../modules/blog/blog.router");
 const couponMakingRouter = require("../modules/couponMaking/couponMaking.router");
 const paymentRouter = require("../modules/payment/payment.router");
+const FaqRouter = require("../modules/faq/faq.router");
+const fdaDisclaimerRouter = require("../modules/fdaDisclaimer/fdaDisclaimer.router");
+const legalDocumentsRouter = require("../modules/legalDocuments/legalDocuments.router");
 
 const router = Router();
 
@@ -36,7 +39,18 @@ const moduleRouter = [
     path: "/cart",
     router: cartRouter,
   },
-
+  {
+    path: "/faq",
+    router: FaqRouter,
+  },
+  {
+    path: "/fadDisclaimer",
+    router: fdaDisclaimerRouter,
+  },
+  {
+    path: "/legal-documents",
+    router: legalDocumentsRouter,
+  },
   {
     path: "/blog",
     router: blogRouter,
@@ -48,8 +62,7 @@ const moduleRouter = [
   {
     path: "/payment",
     router: paymentRouter,
-    
-  }
+  },
 ];
 
 moduleRouter.forEach((route) => {

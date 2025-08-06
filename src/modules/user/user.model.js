@@ -37,6 +37,7 @@ const userModel = new Schema(
     ageVerification: {
       type: Boolean,
       default: false,
+      required: true,
     },
     country: {
       type: String,
