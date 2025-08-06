@@ -30,7 +30,7 @@ const createProduct = async (req, res, next) => {
         message: "Name and category are required fields",
       });
     }
-    
+
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
       return res.status(400).json({
@@ -142,9 +142,8 @@ const getProducts = async (req, res, next) => {
 
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } },
+        { name: { $regex: search } },
+        { description: { $regex: search } },
       ];
     }
 
