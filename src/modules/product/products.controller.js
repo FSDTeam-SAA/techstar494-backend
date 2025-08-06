@@ -1,5 +1,7 @@
 const Product = require("../product/product.model");
-const { sendImageToCloudinary, upload } = require("../../utils/cloudnary");
+const Category = require("../category/category.model");
+const { sendImageToCloudinary } = require("../../utils/cloudnary");
+const slugify = require("slugify");
 
 const handleFileUpload = async (file) => {
   const result = await sendImageToCloudinary(file.filename, file.path);
@@ -19,25 +21,54 @@ const createProduct = async (req, res, next) => {
       experiences,
       dosage,
       restrictedStates,
+      expirationDate,
     } = req.body;
 
-    const parsedBenefits = benefits?.split(",") || [];
+    if (!name || !category) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and category are required fields",
+      });
+    }
+    
+    const categoryExists = await Category.findById(category);
+    if (!categoryExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Specified category does not exist",
+      });
+    }
+
+    const parsedBenefits = JSON.parse(benefits || "[]");
+
     const parsedPrices = JSON.parse(prices || "[]");
-    const parsedExperiences = experiences?.split(",") || [];
+
+    const parsedExperiences = JSON.parse(experiences || "[]");
+
     const parsedRestrictedStates = JSON.parse(restrictedStates || "[]");
 
-    // Handle multiple file uploads
-    const files = req.files;
-    const photoUrls = files?.photo
-      ? await Promise.all(files.photo.map(handleFileUpload))
-      : [];
+    const files = req.files || {};
+    const photoFiles = Array.isArray(files.photo) ? files.photo : [];
+    const coasFiles = Array.isArray(files.coas) ? files.coas : [];
 
-    const coaUrls = files?.coas
-      ? await Promise.all(files.coas.map(handleFileUpload))
-      : [];
+    const [photoUrls, coaUrls] = await Promise.all([
+      Promise.all(photoFiles.map(handleFileUpload)),
+      Promise.all(coasFiles.map(handleFileUpload)),
+    ]);
+
+    const slug = slugify(name, { lower: true, strict: true });
+
+    const existingProduct = await Product.findOne({ slug });
+    if (existingProduct) {
+      return res.status(400).json({
+        success: false,
+        message: "A product with similar name already exists",
+      });
+    }
 
     const newProduct = new Product({
       name,
+      slug,
       batch,
       description,
       disclaimers,
@@ -49,16 +80,24 @@ const createProduct = async (req, res, next) => {
       dosage,
       coas: coaUrls,
       restrictedStates: parsedRestrictedStates,
+      expirationDate,
     });
 
     const savedProduct = await newProduct.save();
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       message: "Product created successfully",
       data: savedProduct,
     });
   } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        errors: Object.values(error.errors).map((err) => err.message),
+      });
+    }
     next(error);
   }
 };
@@ -89,7 +128,7 @@ const getProducts = async (req, res, next) => {
     }
 
     if (location && location !== "All Locations") {
-      query.location = location;
+      query.restrictedStates = { $nin: [location] };
     }
 
     if (experience) {
@@ -102,7 +141,11 @@ const getProducts = async (req, res, next) => {
     }
 
     if (search) {
-      query.name = { $regex: search, $options: "i" };
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } },
+      ];
     }
 
     if (minPrice || maxPrice) {
@@ -120,10 +163,16 @@ const getProducts = async (req, res, next) => {
       sortOptions = { name: 1 };
     } else if (sort === "name-desc") {
       sortOptions = { name: -1 };
+    } else if (sort === "newest") {
+      sortOptions = { createdAt: -1 };
+    } else if (sort === "oldest") {
+      sortOptions = { createdAt: 1 };
     }
 
+    query.expirationDate = { $gt: new Date() };
+
     const [products, total] = await Promise.all([
-      Product.find(query).sort(sortOptions).skip(skip).limit(limit),
+      Product.find(query).sort(sortOptions).skip(skip).limit(limit).lean(),
       Product.countDocuments(query),
     ]);
 
@@ -131,10 +180,12 @@ const getProducts = async (req, res, next) => {
       success: true,
       message: "Products fetched successfully",
       data: products,
-      count: products.length,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
+      meta: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        itemsPerPage: limit,
+      },
     });
   } catch (error) {
     next(error);
@@ -145,12 +196,41 @@ const getProductById = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
     res.status(200).json({
       success: true,
-      message: "Product get successfully",
+      message: "Product retrieved successfully",
+      data: product,
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
+    next(error);
+  }
+};
+
+const getProductBySlug = async (req, res, next) => {
+  try {
+    const product = await Product.findOne({ slug: req.params.slug });
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Product retrieved successfully",
       data: product,
     });
   } catch (error) {
@@ -171,6 +251,7 @@ const updateProduct = async (req, res, next) => {
       experiences,
       dosage,
       restrictedStates,
+      expirationDate,
     } = req.body;
 
     const { id } = req.params;
@@ -180,29 +261,21 @@ const updateProduct = async (req, res, next) => {
 
     const product = await Product.findById(id);
     if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
-    // Upload new photo files if provided
-    let uploadedPhotos = [];
-    for (const file of photoFiles) {
-      const secure_url = await handleFileUpload(file);
-      uploadedPhotos.push(secure_url);
-    }
+    const [uploadedPhotos, uploadedCoas] = await Promise.all([
+      Promise.all(photoFiles.map(handleFileUpload)),
+      Promise.all(coasFiles.map(handleFileUpload)),
+    ]);
 
-    // Upload new COAs if provided
-    let uploadedCoas = [];
-    for (const file of coasFiles) {
-      const secure_url = await handleFileUpload(file);
-      uploadedCoas.push(secure_url);
-    }
-
-    // Safely parse incoming data
+    // Updated: Parse incoming data
     const parsedBenefits = Array.isArray(benefits)
       ? benefits
-      : benefits?.split(",") || undefined;
+      : benefits?.split(",").filter(Boolean) || undefined;
 
     const parsedPrices = prices
       ? Array.isArray(prices)
@@ -212,15 +285,18 @@ const updateProduct = async (req, res, next) => {
 
     const parsedExperiences = Array.isArray(experiences)
       ? experiences
-      : experiences?.split(",") || undefined;
+      : experiences?.split(",").filter(Boolean) || undefined;
 
-    const parsedRestrictedStates = restrictedStates
+    // Updated: Check if restrictedStates is already an array, otherwise parse the JSON string.
+    const parsedRestrictedStates = Array.isArray(restrictedStates)
+      ? restrictedStates
+      : restrictedStates
       ? JSON.parse(restrictedStates)
       : undefined;
 
-    // Build the update object dynamically
     const updateData = {
       ...(name && { name }),
+      ...(name && { slug: slugify(name, { lower: true, strict: true }) }),
       ...(batch && { batch }),
       ...(description && { description }),
       ...(disclaimers && { disclaimers }),
@@ -232,14 +308,15 @@ const updateProduct = async (req, res, next) => {
       ...(parsedRestrictedStates && {
         restrictedStates: parsedRestrictedStates,
       }),
+      ...(expirationDate && { expirationDate }),
     };
 
     if (uploadedPhotos.length > 0) {
-      updateData.photo = uploadedPhotos;
+      updateData.photo = [...product.photo, ...uploadedPhotos];
     }
 
     if (uploadedCoas.length > 0) {
-      updateData.coas = uploadedCoas;
+      updateData.coas = [...product.coas, ...uploadedCoas];
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
@@ -247,12 +324,19 @@ const updateProduct = async (req, res, next) => {
       runValidators: true,
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Product updated successfully",
       data: updatedProduct,
     });
   } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        errors: Object.values(error.errors).map((err) => err.message),
+      });
+    }
     next(error);
   }
 };
@@ -260,17 +344,75 @@ const updateProduct = async (req, res, next) => {
 const deleteProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id);
+    const product = await Product.findByIdAndDelete(id);
+
     if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
-    await Product.findByIdAndDelete(id);
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Product deleted successfully",
+      data: { id: product._id, name: product.name },
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
+    next(error);
+  }
+};
+
+const deleteProductImage = async (req, res, next) => {
+  try {
+    const { id, imageUrl } = req.params;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    product.photo = product.photo.filter((photo) => photo !== imageUrl);
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Image deleted successfully",
+      data: product.photo,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteProductCoa = async (req, res, next) => {
+  try {
+    const { id, coaUrl } = req.params;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    product.coas = product.coas.filter((coa) => coa !== coaUrl);
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: "COA deleted successfully",
+      data: product.coas,
     });
   } catch (error) {
     next(error);
@@ -280,7 +422,10 @@ const deleteProduct = async (req, res, next) => {
 module.exports = {
   getProducts,
   getProductById,
+  getProductBySlug,
   createProduct,
   updateProduct,
   deleteProduct,
+  deleteProductImage,
+  deleteProductCoa,
 };

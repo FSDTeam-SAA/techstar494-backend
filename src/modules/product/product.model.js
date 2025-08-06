@@ -9,26 +9,44 @@ const priceSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const restrictedStateSchema = new mongoose.Schema(
-  {
-    state: { type: String, required: true },
-    expirationDate: { type: Date, required: true },
-  },
-  { _id: false }
-);
-
 const productSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    batch: { type: String },
-    description: { type: String },
-    disclaimers: { type: String },
-    benefits: [{ type: String }],
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100,
+    },
+    slug: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+    batch: {
+      type: String,
+      trim: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+    },
+    disclaimers: {
+      type: String,
+      trim: true,
+    },
+    benefits: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     prices: [priceSchema],
     photo: [{ type: String }],
     category: {
-      type: String,
-      enum: ["Gummies", "Prerolls", "Edibles", "Vapes", "Flower", "Beverage"],
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
     },
     experiences: [
       {
@@ -49,13 +67,22 @@ const productSchema = new mongoose.Schema(
       enum: ["Low Potency", "Medium Potency", "High Potency"],
     },
     coas: [{ type: String }],
-    restrictedStates: [restrictedStateSchema],
+    restrictedStates: [String],
+    expirationDate: { type: Date },
   },
   {
     timestamps: true,
     versionKey: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+// Indexes for better query performance
+productSchema.index({ name: "text", description: "text", category: "text" });
+productSchema.index({ slug: 1 });
+productSchema.index({ category: 1 });
+productSchema.index({ "prices.price": 1 });
 
 const Product =
   mongoose.models.Product || mongoose.model("Product", productSchema);

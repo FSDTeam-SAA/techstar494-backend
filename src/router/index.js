@@ -3,6 +3,7 @@ const userRouter = require("../modules/user/user.router");
 const authRouter = require("../modules/auth/auth.router");
 const sendMessageRouter = require("../modules/contract/contract.router");
 const productRouter = require("../modules/product/product.router");
+const categoryRouter = require("../modules/category/category.router");
 const orderRouter = require("../modules/order/order.router");
 const cartRouter = require("../modules/cart/cart.router");
 const blogRouter = require("../modules/blog/blog.router");
@@ -30,6 +31,10 @@ const moduleRouter = [
   {
     path: "/products",
     router: productRouter,
+  },
+  {
+    path: "/category",
+    router: categoryRouter,
   },
   {
     path: "/order",
