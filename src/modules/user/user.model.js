@@ -28,7 +28,6 @@ const userModel = new Schema(
     phone: {
       type: String,
       default: null,
-      unique: [true, "Phone number must be unique"],
     },
     isVerified: {
       type: Boolean,
