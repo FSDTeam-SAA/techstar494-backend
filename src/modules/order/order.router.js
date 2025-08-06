@@ -6,6 +6,7 @@ const {
   cancelOrder,
   updateOrderStatus,
   getSaveBillingInfo,
+  createOrderByCart,
 } = require("../../modules/order/order.controller");
 const auth = require("../../middleware/auth");
 const USER_ROLE = require("../user/user.constant");
@@ -13,6 +14,8 @@ const USER_ROLE = require("../user/user.constant");
 const router = express.Router();
 
 router.post("/create-order", auth(USER_ROLE.user), createOrderByProduct);
+router.post("/create-order-by-cart", auth(USER_ROLE.user), createOrderByCart);
+
 router.get("/", auth(USER_ROLE.user), getUserOrders);
 router.get("/billing-info", auth(USER_ROLE.user), getSaveBillingInfo);
 

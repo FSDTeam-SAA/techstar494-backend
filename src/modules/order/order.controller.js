@@ -96,7 +96,108 @@ const createOrderByProduct = async (req, res) => {
   }
 };
 
-const createOrderByCart = async (req, res) => {};
+//TODO: there are some bugs don't change it.
+const createOrderByCart = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { billingInfo, paymentMethod, couponCode, product, cartItems } =
+      req.body;
+
+    const user = await User.findById(userId);
+    if (!user) throw new Error("User not found");
+
+    let baseAmount = 0;
+
+    const orderData = {
+      userId: user._id,
+      billingInfo,
+      paymentMethod,
+      paymentStatus: "Unpaid",
+      couponCode,
+    };
+
+    // ----- 1️⃣ If Single Product Purchase -----
+    if (product) {
+      const foundProduct = await Product.findById(product._id);
+      if (!foundProduct) throw new Error("Product not found");
+
+      orderData.product = product._id;
+      orderData.unit = product.unit;
+      orderData.quantity = product.quantity;
+      orderData.pricePerUnit = product.pricePerUnit;
+
+      baseAmount = product.quantity * product.pricePerUnit;
+      orderData.totalAmount = baseAmount;
+
+      // ----- 2️⃣ If Cart Purchase -----
+    } else if (cartItems && cartItems.length > 0) {
+      const fullCartItems = await Promise.all(
+        cartItems.map(async (cartId) => {
+          console.log(cartId, "cartId");
+          console.log(userId, "userId");
+          //there i get cart id 6893934f065e958af15b8c8e
+          const item = await Cart.findOne({
+            _id: cartId,
+            userId,
+          }).populate("product");
+          console.log(item); // there come it null
+          if (!item) throw new Error(`Cart item not found check again`);
+          return item;
+        })
+      );
+
+      const processedItems = [];
+
+      for (const item of fullCartItems) {
+        const itemTotal = item.quantity * item.pricePerUnit;
+        baseAmount += itemTotal;
+
+        processedItems.push({
+          cartId: item._id,
+        });
+      }
+
+      orderData.cardItems = processedItems;
+      orderData.totalAmount = baseAmount;
+
+      // Clear user cart after placing order
+      await Cart.deleteMany({ _id: { $in: cartItems } });
+    } else {
+      throw new Error("Either product or cartItems must be provided.");
+    }
+
+    // ----- 3️⃣ Apply Coupon (If Exists) -----
+    if (couponCode) {
+      const coupon = await couponMaking.findOne({ couponCode });
+      if (!coupon) throw new Error("Invalid coupon code");
+
+      const now = new Date();
+      if (new Date(coupon.timeValidation) < now) {
+        throw new Error("Coupon has expired");
+      }
+
+      const discountAmount = (baseAmount * coupon.discount) / 100;
+      const finalAmount = baseAmount - discountAmount;
+
+      orderData.totalAmount = finalAmount;
+    }
+
+    // ----- 4️⃣ Create Order -----
+    const newOrder = await Order.create(orderData);
+
+    return res.status(201).json({
+      success: true,
+      message: "Order placed successfully",
+      order: newOrder,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      error,
+    });
+  }
+};
 
 const getUserOrders = async (req, res) => {
   try {
