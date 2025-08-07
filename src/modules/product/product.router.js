@@ -5,6 +5,7 @@ const {
   getProductById,
   updateProduct,
   deleteProduct,
+  getProductBySlug,
 } = require("../product/products.controller");
 const { upload } = require("../../utils/cloudnary");
 
@@ -21,6 +22,7 @@ router.post(
 
 router.get("/", getProducts);
 router.get("/:id", getProductById);
+router.get("/slug/:slug", getProductBySlug);
 
 router.put(
   "/update/:id",
