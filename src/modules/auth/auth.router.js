@@ -10,6 +10,12 @@ router.post("/refresh-token", authController.refreshToken);
 router.post("/forgot-password", authController.forgotPassword);
 
 router.post(
+  "/resend-forgot-otp",
+  auth(USER_ROLE.admin, USER_ROLE.user),
+  authController.resendOtpCode
+);
+
+router.post(
   "/verify-token",
   auth(USER_ROLE.admin, USER_ROLE.user),
   authController.verifyToken
@@ -26,7 +32,6 @@ router.post(
   auth(USER_ROLE.admin, USER_ROLE.user),
   authController.changePassword
 );
-
 
 const authRouter = router;
 module.exports = authRouter;
