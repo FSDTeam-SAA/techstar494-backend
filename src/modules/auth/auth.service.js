@@ -174,6 +174,31 @@ const verifyToken = async (otp, email) => {
   return { accessToken };
 };
 
+const resendOtpCode = async ({ email }) => {
+  const existingUser = await User.findOne({ email });
+  if (!existingUser) throw new Error("User not found");
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = await bcrypt.hash(otp, 10);
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+  const result = await User.findOneAndUpdate(
+    { email },
+    {
+      resetPasswordOtp: hashedOtp,
+      resetPasswordOtpExpires: otpExpires,
+    },
+    { new: true }
+  ).select("username email role");
+
+  await sendEmail({
+    to: existingUser.email,
+    subject: `${companyName} - Password Reset OTP`,
+    html: verificationCodeTemplate(otp),
+  });
+  return result;
+};
+
 const resetPassword = async (payload, email) => {
   if (!payload.newPassword) {
     throw new Error("Email and new password are required");
@@ -239,6 +264,7 @@ const authService = {
   LoginRefreshToken,
   forgotPassword,
   verifyToken,
+  resendOtpCode,
   resetPassword,
   changePassword,
 };
