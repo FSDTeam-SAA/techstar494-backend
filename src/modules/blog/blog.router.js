@@ -29,7 +29,7 @@ router.post(
     }
     next();
   },
-  //   auth(USER_ROLE.admin),
+    auth(USER_ROLE.admin),
   createBlog
 );
 
@@ -60,7 +60,7 @@ router.put(
     
     next();
   },
-  //   auth(USER_ROLE.admin),
+    auth(USER_ROLE.admin),
   updateBlog
 );
 
