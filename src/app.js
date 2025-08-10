@@ -28,5 +28,3 @@ app.use(notFound);
 
 module.exports = app;
 
-//TODO: vai apnar ja kaj korcan tar api test postman document a nai ektu add kore deyan.
-//TODO: legalDocuments isue ache create and postman a check kore deyan. ami kecu code add kore dicee, [upsertDocument] if else condition add kore deyan.
