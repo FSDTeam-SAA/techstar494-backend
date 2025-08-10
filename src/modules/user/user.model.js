@@ -80,6 +80,10 @@ const userModel = new Schema(
       enum: ["user", "admin"],
       default: "user",
     },
+    lastPurchasedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true, versionKey: false }
 );
