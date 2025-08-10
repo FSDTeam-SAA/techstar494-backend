@@ -11,7 +11,7 @@ const router = express.Router();
 router.post("/create-subscribe", subscribe);
 router.post("/unsubscribe", unsubscribe);
 
-router.get("/admin/subscribers", getSubscribers);
+router.get("/all", getSubscribers);
 router.post("/admin/send-email", sendEmailToSubscribers);
 
 const subscriberRouter = router;

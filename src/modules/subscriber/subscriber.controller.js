@@ -50,7 +50,6 @@ const subscribe = async (req, res) => {
   }
 };
 
-// Unsubscribe from newsletter
 const unsubscribe = async (req, res) => {
   try {
     const { email } = req.body;
@@ -91,7 +90,9 @@ const getSubscribers = async (req, res) => {
     const totalPages = Math.ceil(total / limit);
 
     res.status(200).json({
-      subscribers,
+      success: true,
+      message: "Subscribers fetched successfully",
+      data: subscribers,
       pagination: {
         currentPage: page,
         totalPages,
@@ -101,13 +102,14 @@ const getSubscribers = async (req, res) => {
       },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching subscribers", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error fetching subscribers",
+      error: error.message,
+    });
   }
 };
 
-// Send email to subscribers
 const sendEmailToSubscribers = async (req, res) => {
   try {
     const { subject, text, html } = req.body;
@@ -127,7 +129,7 @@ const sendEmailToSubscribers = async (req, res) => {
 
     const mailOptions = {
       from: process.env.EMAIL_FROM,
-      bcc: emails, // Using BCC to hide subscriber emails from each other
+      bcc: emails,
       subject,
       text: text || "",
       html: html || "",
@@ -135,9 +137,10 @@ const sendEmailToSubscribers = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    res
-      .status(200)
-      .json({ message: `Email sent to ${emails.length} subscribers` });
+    res.status(200).json({
+      success: true,
+      message: `Email sent to ${emails.length} subscribers`,
+    });
   } catch (error) {
     res
       .status(500)
