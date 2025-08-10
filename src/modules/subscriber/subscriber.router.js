@@ -1,18 +1,18 @@
-const express = require('express');
+const express = require("express");
 const {
-    subscribe,
-    unsubscribe,
-    getSubscribers,
-    sendEmailToSubscribers
-} = require('../../modules/subscriber/subscriber.controller');
-// const { authenticateAdmin } = require('../middleware/authMiddleware');
+  subscribe,
+  unsubscribe,
+  getSubscribers,
+  sendEmailToSubscribers,
+} = require("../../modules/subscriber/subscriber.controller");
 
 const router = express.Router();
 
-router.post('/subscribe', subscribe);
-router.post('/unsubscribe', unsubscribe);
+router.post("/create-subscribe", subscribe);
+router.post("/unsubscribe", unsubscribe);
 
-router.get('/admin/subscribers', getSubscribers);
-router.post('/admin/send-email', sendEmailToSubscribers);
+router.get("/admin/subscribers", getSubscribers);
+router.post("/admin/send-email", sendEmailToSubscribers);
 
-module.exports = router;
+const subscriberRouter = router;
+module.exports = subscriberRouter;
