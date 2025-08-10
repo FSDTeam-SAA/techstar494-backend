@@ -45,44 +45,81 @@ const createDocument = async (req, res) => {
   }
 };
 
-
-const getAllDocuments = async (req, res) => {
+const getPrivacyPolicy = async (req, res) => {
   try {
-    const documents = await LegalDocument.find();
+    const privacyPolicy = await LegalDocument.findOne({
+      documentType: "privacy_policy",
+    });
+
     res.status(200).json({
       success: true,
-      data: documents,
+      message: "Privacy policy fetched successfully",
+      data: privacyPolicy,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch legal documents",
+      message: "Failed to fetch privacy policy",
       error: error.message,
     });
   }
 };
 
-const getDocumentByType = async (req, res) => {
+const termsConditions = async (req, res) => {
   try {
-    const document = await LegalDocument.findOne({
-      documentType: req.params.type,
+    const termsConditions = await LegalDocument.findOne({
+      documentType: "terms_conditions",
     });
-
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: "Document not found",
-      });
-    }
 
     res.status(200).json({
       success: true,
-      data: document,
+      message: "Terms and conditions fetched successfully",
+      data: termsConditions,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch document",
+      message: "Failed to fetch terms and conditions",
+      error: error.message,
+    });
+  }
+};
+
+const legality = async (req, res) => {
+  try {
+    const legality = await LegalDocument.findOne({
+      documentType: "legality",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Legality fetched successfully",
+      data: legality,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch legality",
+      error: error.message,
+    });
+  }
+};
+
+const refundPolicy = async (req, res) => {
+  try {
+    const refundPolicy = await LegalDocument.findOne({
+      documentType: "refund_policy",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Refund policy fetched successfully",
+      data: refundPolicy,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch refund policy",
       error: error.message,
     });
   }
@@ -90,6 +127,8 @@ const getDocumentByType = async (req, res) => {
 
 module.exports = {
   createDocument,
-  getAllDocuments,
-  getDocumentByType,
+  getPrivacyPolicy,
+  termsConditions,
+  legality,
+  refundPolicy,
 };
