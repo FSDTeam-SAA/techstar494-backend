@@ -2,16 +2,15 @@ const express = require("express");
 const {
   getAllDocuments,
   getDocumentByType,
-  upsertDocument,
+  createDocument,
 } = require("../../modules/legalDocuments/legalDocuments.controller");
-// const { protect, admin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+router.post("/create", createDocument);
+
 router.get("/", getAllDocuments);
 router.get("/:type", getDocumentByType);
-
-router.post("/create", upsertDocument);
 
 const legalDocumentsRouter = router;
 module.exports = legalDocumentsRouter;
