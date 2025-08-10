@@ -125,10 +125,61 @@ const refundPolicy = async (req, res) => {
   }
 };
 
+const updateDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { documentType, content } = req.body;
+
+    if (!documentType || !content) {
+      return res.status(400).json({
+        success: false,
+        message: "Document type and content are required",
+      });
+    }
+
+    const document = await LegalDocument.findByIdAndUpdate(
+      id,
+      { documentType, content },
+      { new: true, runValidators: true }
+    );
+
+    let message = "";
+    switch (documentType) {
+      case "privacy_policy":
+        message = "Privacy policy updated successfully";
+        break;
+      case "terms_conditions":
+        message = "Terms and conditions updated successfully";
+        break;
+      case "legality":
+        message = "Legality updated successfully";
+        break;
+      case "refund_policy":
+        message = "Refund policy updated successfully";
+        break;
+      default:
+        message = "Document updated successfully";
+    }
+
+    res.status(200).json({
+      success: true,
+      message,
+      data: document,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update document",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createDocument,
   getPrivacyPolicy,
   termsConditions,
   legality,
   refundPolicy,
+  updateDocument,
 };
