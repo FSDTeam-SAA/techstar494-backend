@@ -5,7 +5,13 @@ const legalDocumentSchema = new mongoose.Schema(
     documentType: {
       type: String,
       required: true,
-      enum: ["privacy_policy", "terms_conditions", "legality", "refund_policy"],
+      enum: [
+        "privacy_policy",
+        "terms_conditions",
+        "legality",
+        "refund_policy",
+        "fda",
+      ],
       unique: true,
     },
     content: {

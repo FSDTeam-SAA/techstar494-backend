@@ -65,6 +65,26 @@ const getPrivacyPolicy = async (req, res) => {
   }
 };
 
+const getFda = async (req, res) => {
+  try {
+    const privacyPolicy = await LegalDocument.findOne({
+      documentType: "fda",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "FDA fetched successfully",
+      data: privacyPolicy,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch FDA",
+      error: error.message,
+    });
+  }
+};
+
 const termsConditions = async (req, res) => {
   try {
     const termsConditions = await LegalDocument.findOne({
@@ -178,6 +198,7 @@ const updateDocument = async (req, res) => {
 module.exports = {
   createDocument,
   getPrivacyPolicy,
+  getFda,
   termsConditions,
   legality,
   refundPolicy,
