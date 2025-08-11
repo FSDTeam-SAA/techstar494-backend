@@ -27,6 +27,9 @@ const createDocument = async (req, res) => {
       case "refund_policy":
         message = "Refund policy created successfully";
         break;
+      case "fda":
+        message = "FDA created successfully";
+        break;
       default:
         message = "Document created successfully";
     }
@@ -176,6 +179,9 @@ const updateDocument = async (req, res) => {
         break;
       case "refund_policy":
         message = "Refund policy updated successfully";
+        break;
+      case "fda":
+        message = "FDA updated successfully";
         break;
       default:
         message = "Document updated successfully";
