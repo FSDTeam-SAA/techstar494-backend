@@ -13,8 +13,14 @@ router.post(
 
 router.post(
   "/confirm-payment",
-//   auth(USER_ROLE.user),
+  //   auth(USER_ROLE.user),
   paymentController.confirmPayment
+);
+
+router.get(
+  "/my-payment",
+  auth(USER_ROLE.user),
+  paymentController.getMyPayments
 );
 
 const paymentRouter = router;
