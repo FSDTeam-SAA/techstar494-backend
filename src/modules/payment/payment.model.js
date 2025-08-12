@@ -1,4 +1,4 @@
-const { Schema } = require("mongoose");
+const { Schema, model } = require("mongoose");
 
 const paymentModel = new Schema({
   userId: {
@@ -19,5 +19,5 @@ const paymentModel = new Schema({
   },
 });
 
-const Payment = mongoose.model("Payment", paymentModel);
+const Payment = model("Payment", paymentModel);
 module.exports = Payment;
