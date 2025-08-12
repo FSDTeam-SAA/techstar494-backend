@@ -81,7 +81,59 @@ const createPaymentByProduct = async (req, res) => {
   }
 };
 
+const confirmPayment = async (req, res) => {
+  const { paymentIntentId } = req.body;
+
+  if (!paymentIntentId) {
+    return res.status(400).json({
+      error: "paymentIntentId is required.",
+    });
+  }
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (paymentIntent.status === "succeeded") {
+      await Payment.findOneAndUpdate(
+        { transactionId: paymentIntentId },
+        { status: "success" }
+      );
+
+      await Order.findOneAndUpdate(
+        { _id: paymentIntent.metadata.orderId },
+        { paymentStatus: "Paid" }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Payment successfully captured.",
+        paymentIntent,
+      });
+    } else {
+      await Payment.findOneAndUpdate(
+        { transactionId: paymentIntentId },
+        { status: "failed" }
+      );
+
+      await Order.findOneAndUpdate(
+        { _id: paymentIntent.metadata.orderId },
+        { paymentStatus: "Paid" }
+      );
+
+      return res.status(400).json({
+        error: "Payment was not successful.",
+      });
+    }
+  } catch (error) {
+    console.error("Error confirming payment:", error);
+    res.status(500).json({
+      error: "Internal server error.",
+    });
+  }
+};
+
 const paymentController = {
   createPaymentByProduct,
+  confirmPayment,
 };
 module.exports = paymentController;

@@ -11,5 +11,11 @@ router.post(
   paymentController.createPaymentByProduct
 );
 
+router.post(
+  "/confirm-payment",
+//   auth(USER_ROLE.user),
+  paymentController.confirmPayment
+);
+
 const paymentRouter = router;
 module.exports = paymentRouter;
