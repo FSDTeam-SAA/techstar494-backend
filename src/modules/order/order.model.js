@@ -60,6 +60,10 @@ const orderSchema = new mongoose.Schema(
       enum: ["Unpaid", "Paid", "Failed"],
       default: "Unpaid",
     },
+    purchaseDate: {
+      type: Date,
+      default: Date.now,
+    },
   },
   { timestamps: true, versionKey: false }
 );

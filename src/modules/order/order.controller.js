@@ -69,6 +69,7 @@ const createOrderByProduct = async (req, res) => {
       totalAmount: finalAmount,
       discountAmount: discount,
       couponUsed: couponCode || null,
+      paymentDate: Date.now(),
     });
 
     await newOrder.save();
@@ -147,6 +148,7 @@ const createOrderByCart = async (req, res) => {
       couponCode,
       totalAmount: 0,
       cartItems: [],
+      purchaseDate: Date.now(),
     };
 
     let baseAmount = 0;
@@ -273,10 +275,15 @@ const getUserOrders = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) throw new Error("User not found");
 
-    const orders = await Order.find({ userId: user._id }).populate({
-      path: "product",
-      select: "name photo category",
-    });
+    const orders = await Order.find({ userId: user._id })
+      .populate({
+        path: "product",
+        select: "name photo category",
+      })
+      .populate({
+        path: "userId",
+        select: "firstName lastName userName email",
+      });
 
     return res.status(200).json({
       success: true,

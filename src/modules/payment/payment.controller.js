@@ -2,6 +2,7 @@ const Stripe = require("stripe");
 const User = require("../user/user.model");
 const Payment = require("./payment.model");
 const Product = require("../product/product.model");
+const Order = require("../order/order.model");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-05-28.basil",
@@ -10,7 +11,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 const createPaymentByProduct = async (req, res) => {
   try {
     const { email } = req.user;
-    const { productId, quantity, unit } = req.body;
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        code: 400,
+        message: "Order id is required",
+      });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -21,51 +30,47 @@ const createPaymentByProduct = async (req, res) => {
       });
     }
 
-    const product = await Product.findById(productId);
-    if (!product) {
+    const order = await Order.findById(orderId);
+    if (!order) {
       return res.status(404).json({
         success: false,
         code: 404,
-        message: "Product not found",
+        message: "Order not found",
       });
     }
 
-    const selectedPrice = product.prices.find((p) => p.unit === unit);
-    if (!selectedPrice) {
+    if (order.paymentMethod === "COD") {
       return res.status(400).json({
         success: false,
         code: 400,
-        message: "Please select a valid price unit",
+        message: "You paid by cash on delivery",
       });
     }
 
-    const totalAmount = selectedPrice.price * quantity;
-
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalAmount,
+      amount: Math.round(order.totalAmount * 100),
       currency: "usd",
       metadata: {
         userId: user._id.toString(),
-        productId: product._id.toString(),
+        orderId: order._id.toString(),
       },
     });
 
     const newPayment = new Payment({
-      user: user._id,
-      product: product._id,
-      quantity,
-      totalAmount,
-      paymentIntentId: paymentIntent.id,
-      status: "pending",
+      userId: user._id,
+      orderId: order._id,
+      quantity: order.quantity,
+      amount: order.totalAmount,
+      transactionId: paymentIntent.id,
     });
 
     await newPayment.save();
 
     return res.status(201).json({
       success: true,
-      code: 201,
-      message: "Payment created successfully",
-      data: newPayment,
+      clientSecret: paymentIntent.client_secret,
+      message:
+        "PaymentIntent created. Use clientSecret in frontend Payment Element.",
     });
   } catch (error) {
     return res.status(500).json({
@@ -76,7 +81,7 @@ const createPaymentByProduct = async (req, res) => {
   }
 };
 
-const createPaymentController = {
+const paymentController = {
   createPaymentByProduct,
 };
-module.exports = createPaymentController;
+module.exports = paymentController;
