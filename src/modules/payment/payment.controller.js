@@ -187,9 +187,57 @@ const getMyPayments = async (req, res) => {
   }
 };
 
+const getAllPayments = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [totalItems, payments] = await Promise.all([
+      Payment.countDocuments({ status: "success" }),
+      Payment.find({})
+        .populate({
+          path: "userId",
+          select: "firstName lastName userName points",
+        })
+        .populate({
+          path: "orderId",
+          select: "quantity totalAmount purchaseDate",
+          populate: {
+            path: "product",
+            select: "name batch",
+          },
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return res.status(200).json({
+      success: true,
+      message: "All payments fetched successfully.",
+      data: payments,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        itemsPerPage: limit,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error.",
+    });
+  }
+};
+
 const paymentController = {
   createPaymentByProduct,
   confirmPayment,
   getMyPayments,
+  getAllPayments,
 };
 module.exports = paymentController;

@@ -23,5 +23,11 @@ router.get(
   paymentController.getMyPayments
 );
 
+router.get(
+  "/all-payment",
+  //   auth(USER_ROLE.admin),
+  paymentController.getAllPayments
+);
+
 const paymentRouter = router;
 module.exports = paymentRouter;
