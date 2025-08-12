@@ -66,7 +66,7 @@ const createOrderByProduct = async (req, res) => {
       billingInfo,
       paymentMethod,
       paymentStatus: "Unpaid",
-      totalAmount: finalAmount,
+      totalAmount: Math.ceil(finalAmount),
       discountAmount: discount,
       couponUsed: couponCode || null,
       paymentDate: Date.now(),
@@ -77,6 +77,14 @@ const createOrderByProduct = async (req, res) => {
     // 4. Update product quantity
     priceEntry.quantity -= quantity;
     await product.save();
+
+    // const pointToAdd = Math.ceil(finalAmount);
+
+    // await user.findByIdAndUpdate(
+    //   { _id: user._id },
+    //   { $inc: { points: Math.max(pointToAdd, 0) } },
+    //   { new: true }
+    // );
 
     const result = await Order.findById(newOrder._id)
       .populate({
@@ -246,6 +254,12 @@ const createOrderByCart = async (req, res) => {
       _id: { $in: processedCartIds },
     }).session(session);
 
+    // const pointToAdd = Math.ceil(orderData.totalAmount);
+
+    // await User.findByIdAndUpdate(user._id, {
+    //   $push: { points: pointToAdd },
+    // }).session(session);
+
     // Populate products in response
     const populatedOrder = await Order.findById(newOrder._id)
       .populate("cartItems.cartId")
@@ -330,6 +344,7 @@ const getAllOrders = async (req, res) => {
     const { search } = req.query;
 
     const pipeline = [
+      // Lookup user
       {
         $lookup: {
           from: "users",
@@ -339,60 +354,110 @@ const getAllOrders = async (req, res) => {
         },
       },
       { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+      // Optional search
+      ...(search && search.trim() !== ""
+        ? [
+            {
+              $match: {
+                $or: [
+                  { "user.firstName": { $regex: search, $options: "i" } },
+                  { "user.lastName": { $regex: search, $options: "i" } },
+                  { "user.userName": { $regex: search, $options: "i" } },
+                ],
+              },
+            },
+          ]
+        : []),
+
+      // Lookup single product orders
+      {
+        $lookup: {
+          from: "products",
+          localField: "product",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
+
+      // Lookup products from cartItems
+      {
+        $lookup: {
+          from: "carts",
+          localField: "cartItems.cartId",
+          foreignField: "_id",
+          as: "cartDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$cartDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Lookup products for those cartDetails
+      {
+        $lookup: {
+          from: "products",
+          localField: "cartDetails.product",
+          foreignField: "_id",
+          as: "cartProduct",
+        },
+      },
+
+      // Group back cart products
+      {
+        $group: {
+          _id: "$_id",
+          doc: { $first: "$$ROOT" },
+          cartProducts: { $push: { $arrayElemAt: ["$cartProduct", 0] } },
+        },
+      },
+
+      // Merge cartProducts into the root document
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: ["$doc", { cartProducts: "$cartProducts" }],
+          },
+        },
+      },
+
+      // Final projection
+      {
+        $project: {
+          _id: 1,
+          user: {
+            firstName: 1,
+            lastName: 1,
+            userName: 1,
+            email: 1,
+          },
+          product: { name: 1, photo: 1, category: 1 },
+          cartProducts: { name: 1, photo: 1, category: 1 },
+          cartItems: 1,
+          totalAmount: 1,
+          status: 1,
+          paymentMethod: 1,
+          paymentStatus: 1,
+          purchaseDate: 1,
+        },
+      },
     ];
-
-    // Add filtering only if search exists
-    if (search && search.trim() !== "") {
-      pipeline.push({
-        $match: {
-          $or: [
-            { "user.firstName": { $regex: search, $options: "i" } },
-            { "user.lastName": { $regex: search, $options: "i" } },
-            { "user.userName": { $regex: search, $options: "i" } },
-          ],
-        },
-      });
-    }
-
-    // Lookup product details
-    pipeline.push({
-      $lookup: {
-        from: "products",
-        localField: "product",
-        foreignField: "_id",
-        as: "product",
-      },
-    });
-    pipeline.push({
-      $unwind: { path: "$product", preserveNullAndEmptyArrays: true },
-    });
-
-    // Return only required fields
-    pipeline.push({
-      $project: {
-        _id: 1,
-        product: { name: 1, photo: 1, category: 1 },
-        user: {
-          firstName: 1,
-          lastName: 1,
-          userName: 1,
-          email: 1,
-        },
-      },
-    });
 
     const orders = await Order.aggregate(pipeline);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Orders fetched successfully",
       data: orders,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: error.message,
-      error,
     });
   }
 };
