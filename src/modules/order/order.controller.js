@@ -292,6 +292,78 @@ const getOrderById = async (req, res) => {
   }
 };
 
+const getAllOrders = async (req, res) => {
+  try {
+    const { search } = req.query;
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+    ];
+
+    // Add filtering only if search exists
+    if (search && search.trim() !== "") {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "user.firstName": { $regex: search, $options: "i" } },
+            { "user.lastName": { $regex: search, $options: "i" } },
+            { "user.userName": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    // Lookup product details
+    pipeline.push({
+      $lookup: {
+        from: "products",
+        localField: "product",
+        foreignField: "_id",
+        as: "product",
+      },
+    });
+    pipeline.push({
+      $unwind: { path: "$product", preserveNullAndEmptyArrays: true },
+    });
+
+    // Return only required fields
+    pipeline.push({
+      $project: {
+        _id: 1,
+        product: { name: 1, photo: 1, category: 1 },
+        user: {
+          firstName: 1,
+          lastName: 1,
+          userName: 1,
+          email: 1,
+        },
+      },
+    });
+
+    const orders = await Order.aggregate(pipeline);
+
+    return res.status(200).json({
+      success: true,
+      message: "Orders fetched successfully",
+      data: orders,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      error,
+    });
+  }
+};
+
 const getSaveBillingInfo = async (req, res) => {
   try {
     const { email } = req.user;
@@ -411,6 +483,7 @@ module.exports = {
   createOrderByCart,
   getUserOrders,
   getOrderById,
+  getAllOrders,
   updateOrderStatus,
   cancelOrder,
   getSaveBillingInfo,
