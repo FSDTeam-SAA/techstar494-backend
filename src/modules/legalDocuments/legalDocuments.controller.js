@@ -88,6 +88,26 @@ const getFda = async (req, res) => {
   }
 };
 
+const getLabs = async (req, res) => {
+  try {
+    const privacyPolicy = await LegalDocument.findOne({
+      documentType: "labs",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Labs fetched successfully",
+      data: privacyPolicy,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch labs",
+      error: error.message,
+    });
+  }
+};
+
 const termsConditions = async (req, res) => {
   try {
     const termsConditions = await LegalDocument.findOne({
@@ -209,4 +229,5 @@ module.exports = {
   legality,
   refundPolicy,
   updateDocument,
+  getLabs,
 };
