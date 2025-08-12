@@ -132,8 +132,64 @@ const confirmPayment = async (req, res) => {
   }
 };
 
+const getMyPayments = async (req, res) => {
+  try {
+    const { email } = req.user;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found.",
+      });
+    }
+
+    // Pagination params with defaults
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [payments, totalItems] = await Promise.all([
+      Payment.find({ userId: user._id })
+        .populate({
+          path: "userId",
+          select: "firstName lastName userName points",
+        })
+        .populate({
+          path: "orderId",
+          select: "quantity totalAmount purchaseDate",
+          populate: {
+            path: "product",
+            select: "name batch",
+          },
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Payment.countDocuments({ userId: user._id }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return res.status(200).json({
+      success: true,
+      message: "Your payments fetched successfully.",
+      data: payments,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        itemsPerPage: limit,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Internal server error.",
+    });
+  }
+};
+
 const paymentController = {
   createPaymentByProduct,
   confirmPayment,
+  getMyPayments,
 };
 module.exports = paymentController;
