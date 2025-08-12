@@ -3,6 +3,7 @@ const Cart = require("../../modules/cart/cart.model");
 const Product = require("../../modules/product/product.model");
 const User = require("../user/user.model");
 const couponMaking = require("../couponMaking/couponMaking.model");
+const { default: mongoose } = require("mongoose");
 
 const createOrderByProduct = async (req, res) => {
   try {
@@ -15,6 +16,10 @@ const createOrderByProduct = async (req, res) => {
       unit,
       couponCode,
     } = req.body;
+
+    if (!paymentMethod) {
+      throw new Error("Select payment method first");
+    }
 
     const user = await User.findOne({ email });
     if (!user) throw new Error("User not found");
@@ -96,105 +101,142 @@ const createOrderByProduct = async (req, res) => {
   }
 };
 
-//TODO: there are some bugs don't change it.
 const createOrderByCart = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { userId } = req.user;
-    const { billingInfo, paymentMethod, couponCode, product, cartItems } =
-      req.body;
+    const { billingInfo, paymentMethod, couponCode, cartItems } = req.body;
 
-    const user = await User.findById(userId);
-    if (!user) throw new Error("User not found");
+    // Validate request body
+    if (
+      !billingInfo ||
+      !paymentMethod ||
+      !cartItems ||
+      !Array.isArray(cartItems) ||
+      cartItems.length === 0
+    ) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required fields: billingInfo, paymentMethod, or cartItems",
+      });
+    }
 
-    let baseAmount = 0;
+    // Verify user exists
+    const user = await User.findById(userId).session(session);
+    if (!user) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
+    // Prepare order data
     const orderData = {
       userId: user._id,
       billingInfo,
       paymentMethod,
       paymentStatus: "Unpaid",
       couponCode,
+      totalAmount: 0,
+      cartItems: [],
     };
 
-    // ----- 1️⃣ If Single Product Purchase -----
-    if (product) {
-      const foundProduct = await Product.findById(product._id);
-      if (!foundProduct) throw new Error("Product not found");
+    let baseAmount = 0;
+    const processedCartIds = [];
 
-      orderData.product = product._id;
-      orderData.unit = product.unit;
-      orderData.quantity = product.quantity;
-      orderData.pricePerUnit = product.pricePerUnit;
-
-      baseAmount = product.quantity * product.pricePerUnit;
-      orderData.totalAmount = baseAmount;
-
-      // ----- 2️⃣ If Cart Purchase -----
-    } else if (cartItems && cartItems.length > 0) {
-      const fullCartItems = await Promise.all(
-        cartItems.map(async (cartId) => {
-          console.log(cartId, "cartId");
-          console.log(userId, "userId");
-          //there i get cart id 6893934f065e958af15b8c8e
-          const item = await Cart.findOne({
-            _id: cartId,
-            userId,
-          }).populate("product");
-          console.log(item); // there come it null
-          if (!item) throw new Error(`Cart item not found check again`);
-          return item;
+    // Process each cart item
+    for (const cartItemId of cartItems) {
+      try {
+        const cart = await Cart.findOne({
+          _id: cartItemId,
+          userId: user._id,
         })
-      );
+          .populate("product")
+          .session(session);
 
-      const processedItems = [];
+        if (!cart) throw new Error(`Cart item ${cartItemId} not found`);
+        if (!cart.product)
+          throw new Error(`Product not found in cart ${cartItemId}`);
 
-      for (const item of fullCartItems) {
-        const itemTotal = item.quantity * item.pricePerUnit;
+        const itemTotal = parseFloat(
+          (cart.pricePerUnit * cart.quantity).toFixed(2)
+        );
         baseAmount += itemTotal;
 
-        processedItems.push({
-          cartId: item._id,
+        // Push product reference and details directly into order
+        orderData.cartItems.push({
+          cartId: cart.product._id,
+          name: cart.product.name,
+          pricePerUnit: cart.pricePerUnit,
+          quantity: cart.quantity,
+          unit: cart.unit,
+        });
+
+        processedCartIds.push(cart._id);
+      } catch (itemError) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: itemError.message,
         });
       }
-
-      orderData.cardItems = processedItems;
-      orderData.totalAmount = baseAmount;
-
-      // Clear user cart after placing order
-      await Cart.deleteMany({ _id: { $in: cartItems } });
-    } else {
-      throw new Error("Either product or cartItems must be provided.");
     }
 
-    // ----- 3️⃣ Apply Coupon (If Exists) -----
+    // Apply coupon if provided
     if (couponCode) {
-      const coupon = await couponMaking.findOne({ couponCode });
+      const coupon = await couponMaking
+        .findOne({ couponCode })
+        .session(session);
       if (!coupon) throw new Error("Invalid coupon code");
+      if (new Date(coupon.timeValidation) < new Date())
+        throw new Error("Coupon expired");
 
-      const now = new Date();
-      if (new Date(coupon.timeValidation) < now) {
-        throw new Error("Coupon has expired");
-      }
-
-      const discountAmount = (baseAmount * coupon.discount) / 100;
-      const finalAmount = baseAmount - discountAmount;
-
-      orderData.totalAmount = finalAmount;
+      const discountAmount = parseFloat(
+        ((baseAmount * coupon.discount) / 100).toFixed(2)
+      );
+      orderData.totalAmount = parseFloat(
+        (baseAmount - discountAmount).toFixed(2)
+      );
+    } else {
+      orderData.totalAmount = parseFloat(baseAmount.toFixed(2));
     }
 
-    // ----- 4️⃣ Create Order -----
-    const newOrder = await Order.create(orderData);
+    // Create order
+    const newOrderArr = await Order.create([orderData], { session });
+    const newOrder = newOrderArr[0];
+
+    // Remove processed cart items immediately
+    await Cart.deleteMany({
+      _id: { $in: processedCartIds },
+    }).session(session);
+
+    // Populate products in response
+    const populatedOrder = await Order.findById(newOrder._id)
+      .populate("cartItems.cartId")
+      .session(session);
+
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(201).json({
       success: true,
       message: "Order placed successfully",
-      order: newOrder,
+      data: populatedOrder,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     return res.status(500).json({
       success: false,
       message: error.message,
-      error,
     });
   }
 };

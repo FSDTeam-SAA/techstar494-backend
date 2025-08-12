@@ -10,30 +10,30 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
     },
-    cardItems: [
+    cartItems: [
       {
-        cartId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Cart",
-        },
+        cartId: { type: mongoose.Schema.Types.ObjectId, ref: "Cart" },
+        name: { type: String },
+        pricePerUnit: { type: Number },
+        quantity: { type: Number },
+        unit: { type: String },
       },
+      { _id: false },
     ],
     couponCode: {
       type: String,
     },
     unit: {
       type: String,
-      required: true,
+
       enum: ["pc", "ct", "gm"],
     },
     quantity: {
       type: Number,
-      required: true,
       min: 1,
     },
     pricePerUnit: {
       type: Number,
-      required: true,
     },
     totalAmount: {
       type: Number,
