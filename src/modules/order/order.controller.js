@@ -101,6 +101,7 @@ const createOrderByProduct = async (req, res) => {
   }
 };
 
+//TODO: issue is fixed and now it is working. If need any changes, i add comment there. I think you will understand.
 const createOrderByCart = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -161,10 +162,7 @@ const createOrderByCart = async (req, res) => {
           .populate("product")
           .session(session);
 
-        if (!cart) throw new Error(`Cart item ${cartItemId} not found`);
-        if (!cart.product)
-          throw new Error(`Product not found in cart ${cartItemId}`);
-
+        if (!cart) throw new Error(`Cart item not found`);
         const itemTotal = parseFloat(
           (cart.pricePerUnit * cart.quantity).toFixed(2)
         );
@@ -178,6 +176,34 @@ const createOrderByCart = async (req, res) => {
           quantity: cart.quantity,
           unit: cart.unit,
         });
+
+        // Update product quantity
+        const product = await Product.findById(cart.product._id).session(
+          session
+        );
+        if (!product) throw new Error("Product not found");
+
+        // Find the matching price object in the product
+        const priceIndex = product.prices.findIndex(
+          (p) => p.unit === cart.unit && p.price === cart.pricePerUnit
+        );
+
+        if (priceIndex === -1) {
+          throw new Error("Matching product price/unit combination not found");
+        }
+
+        // Check if enough quantity is available
+        if (product.prices[priceIndex].quantity < cart.quantity) {
+          throw new Error(
+            `Not enough quantity available for ${product.name} (${cart.unit})`
+          );
+        }
+
+        // Deduct the ordered quantity
+        product.prices[priceIndex].quantity -= cart.quantity;
+
+        // Save the updated product
+        await product.save({ session });
 
         processedCartIds.push(cart._id);
       } catch (itemError) {
