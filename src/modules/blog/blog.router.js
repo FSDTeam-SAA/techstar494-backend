@@ -11,8 +11,6 @@ const {
   updateBlog,
 } = require("./blog.controller");
 
-
-
 router.post(
   "/create",
   upload.single("image"),
@@ -29,7 +27,7 @@ router.post(
     }
     next();
   },
-    auth(USER_ROLE.admin),
+  auth(USER_ROLE.admin),
   createBlog
 );
 
@@ -39,9 +37,7 @@ router.get(
   getAllBlog
 );
 
-
 router.get("/:id", getSingleBlog);
-
 
 router.put(
   "/:id",
@@ -57,13 +53,12 @@ router.put(
         });
       }
     }
-    
+
     next();
   },
-    auth(USER_ROLE.admin),
+  auth(USER_ROLE.admin),
   updateBlog
 );
-
 
 router.delete("/:id", auth(USER_ROLE.admin), deleteBlog);
 
