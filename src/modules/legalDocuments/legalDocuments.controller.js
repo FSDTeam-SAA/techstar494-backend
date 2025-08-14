@@ -30,6 +30,9 @@ const createDocument = async (req, res) => {
       case "fda":
         message = "FDA created successfully";
         break;
+      case "setPromotion":
+        message = "Set promotion created successfully";
+        break;
       default:
         message = "Document created successfully";
     }
@@ -182,6 +185,9 @@ const updateDocument = async (req, res) => {
         break;
       case "fda":
         message = "FDA updated successfully";
+        break;
+      case "setPromotion":
+        message = "Set promotion updated successfully";
         break;
       default:
         message = "Document updated successfully";
