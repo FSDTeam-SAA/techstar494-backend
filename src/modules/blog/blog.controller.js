@@ -12,24 +12,26 @@ exports.createBlog = async (req, res) => {
       });
     }
 
+    let imageUrl = null;
     const file = req.file;
     if (file) {
       const imageName = `blog/${Date.now()}_${file.originalname}`;
-      const path = file?.path;
+      const path = file.path;
       const { secure_url } = await sendImageToCloudinary(imageName, path);
-
-      const blog = await Blog.create({
-        blogTitle,
-        blogDescription,
-        image: secure_url,
-      });
-
-      return res.status(201).json({
-        status: true,
-        message: "Blog created successfully",
-        data: blog,
-      });
+      imageUrl = secure_url;
     }
+
+    const blog = await Blog.create({
+      blogTitle,
+      blogDescription,
+      image: imageUrl,
+    });
+
+    return res.status(201).json({
+      status: true,
+      message: "Blog created successfully",
+      data: blog,
+    });
   } catch (error) {
     return res.status(500).json({
       status: false,
@@ -124,27 +126,26 @@ exports.updateBlog = async (req, res) => {
     if (!existingBlog) {
       return res.status(404).json({
         status: false,
-        message: "blog not found",
+        message: "Blog not found",
       });
     }
 
-    const file = req.file;
-    if (file) {
-      const imageName = `blog/${Date.now()}_${file.originalname}`;
-      const path = file?.path;
+    if (req.file) {
+      const imageName = `blog/${Date.now()}_${req.file.originalname}`;
+      const path = req.file.path;
       const { secure_url } = await sendImageToCloudinary(imageName, path);
       existingBlog.image = secure_url;
     }
 
-    const result = await Blog.findByIdAndUpdate(id, {
-      blogTitle,
-      blogDescription,
-    });
+    if (blogTitle) existingBlog.blogTitle = blogTitle;
+    if (blogDescription) existingBlog.blogDescription = blogDescription;
+
+    await existingBlog.save();
 
     return res.status(200).json({
       status: true,
-      message: "blog updated successfully",
-      data: result,
+      message: "Blog updated successfully",
+      data: existingBlog,
     });
   } catch (error) {
     return res.status(500).json({
