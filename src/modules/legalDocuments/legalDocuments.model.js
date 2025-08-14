@@ -12,6 +12,7 @@ const legalDocumentSchema = new mongoose.Schema(
         "refund_policy",
         "fda",
         "setPromotion",
+        "labs",
       ],
       unique: true,
     },
