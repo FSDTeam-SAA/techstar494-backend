@@ -1,10 +1,15 @@
 const Product = require("../product/product.model");
 const Category = require("../category/category.model");
-const { sendImageToCloudinary } = require("../../utils/cloudnary");
+const {
+  sendImageToCloudinary,
+  deleteFileFromCloudinary,
+} = require("../../utils/cloudnary");
 const slugify = require("slugify");
 
 const handleFileUpload = async (file) => {
-  const result = await sendImageToCloudinary(file.filename, file.path);
+  const name = file.originalname.split(".")[0];
+  const result = await sendImageToCloudinary(name, file.path);
+  console.log(result);
   return result.secure_url;
 };
 
@@ -239,7 +244,7 @@ const getProductBySlug = async (req, res, next) => {
 
 const updateProduct = async (req, res, next) => {
   try {
-    const {
+    let {
       name,
       batch,
       description,
@@ -251,12 +256,30 @@ const updateProduct = async (req, res, next) => {
       dosage,
       restrictedStates,
       expirationDate,
+      deletedPhotos, // from frontend
+      deletedCoas, // from frontend
     } = req.body;
 
     const { id } = req.params;
     const files = req.files || {};
     const photoFiles = Array.isArray(files.photo) ? files.photo : [];
     const coasFiles = Array.isArray(files.coas) ? files.coas : [];
+
+    // Parse if they came as JSON strings
+    if (typeof deletedPhotos === "string") {
+      try {
+        deletedPhotos = JSON.parse(deletedPhotos);
+      } catch {
+        deletedPhotos = [];
+      }
+    }
+    if (typeof deletedCoas === "string") {
+      try {
+        deletedCoas = JSON.parse(deletedCoas);
+      } catch {
+        deletedCoas = [];
+      }
+    }
 
     const product = await Product.findById(id);
     if (!product) {
@@ -266,28 +289,43 @@ const updateProduct = async (req, res, next) => {
       });
     }
 
+    // Upload new files
     const [uploadedPhotos, uploadedCoas] = await Promise.all([
       Promise.all(photoFiles.map(handleFileUpload)),
       Promise.all(coasFiles.map(handleFileUpload)),
     ]);
 
-    // Updated: Parse incoming data
+    // Parse incoming arrays
     const parsedBenefits = JSON.parse(benefits || "[]");
-
     const parsedPrices = prices ? JSON.parse(prices) : [];
-
-    console.log(parsedPrices);
-
     const parsedExperiences = JSON.parse(experiences || "[]");
-
-  
-    console.log(parsedExperiences);
     const parsedRestrictedStates = Array.isArray(restrictedStates)
       ? restrictedStates
       : restrictedStates
       ? JSON.parse(restrictedStates)
       : undefined;
 
+    // Handle deletion of photos
+    let updatedPhotos = product.photo || [];
+    if (Array.isArray(deletedPhotos) && deletedPhotos.length > 0) {
+      updatedPhotos = updatedPhotos.filter(
+        (url) => !deletedPhotos.includes(url)
+      );
+      await Promise.all(deletedPhotos.map(deleteFileFromCloudinary));
+    }
+
+    // Handle deletion of COAs
+    let updatedCoas = product.coas || [];
+    if (Array.isArray(deletedCoas) && deletedCoas.length > 0) {
+      updatedCoas = updatedCoas.filter((url) => !deletedCoas.includes(url));
+      await Promise.all(deletedCoas.map(deleteFileFromCloudinary));
+    }
+
+    // Add new uploads
+    if (uploadedPhotos.length > 0) updatedPhotos.push(...uploadedPhotos);
+    if (uploadedCoas.length > 0) updatedCoas.push(...uploadedCoas);
+
+    // Prepare update data
     const updateData = {
       ...(name && { name }),
       ...(name && { slug: slugify(name, { lower: true, strict: true }) }),
@@ -303,15 +341,9 @@ const updateProduct = async (req, res, next) => {
         restrictedStates: parsedRestrictedStates,
       }),
       ...(expirationDate && { expirationDate }),
+      photo: updatedPhotos,
+      coas: updatedCoas,
     };
-
-    if (uploadedPhotos.length > 0) {
-      updateData.photo = [...product.photo, ...uploadedPhotos];
-    }
-
-    if (uploadedCoas.length > 0) {
-      updateData.coas = [...product.coas, ...uploadedCoas];
-    }
 
     const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
       new: true,
