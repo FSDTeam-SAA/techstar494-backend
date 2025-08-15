@@ -272,21 +272,16 @@ const updateProduct = async (req, res, next) => {
     ]);
 
     // Updated: Parse incoming data
-    const parsedBenefits = Array.isArray(benefits)
-      ? benefits
-      : benefits?.split(",").filter(Boolean) || undefined;
+    const parsedBenefits = JSON.parse(benefits || "[]");
 
-    const parsedPrices = prices
-      ? Array.isArray(prices)
-        ? prices
-        : JSON.parse(prices)
-      : undefined;
+    const parsedPrices = prices ? JSON.parse(prices) : [];
 
-    const parsedExperiences = Array.isArray(experiences)
-      ? experiences
-      : experiences?.split(",").filter(Boolean) || undefined;
+    console.log(parsedPrices);
 
-    // Updated: Check if restrictedStates is already an array, otherwise parse the JSON string.
+    const parsedExperiences = JSON.parse(experiences || "[]");
+
+  
+    console.log(parsedExperiences);
     const parsedRestrictedStates = Array.isArray(restrictedStates)
       ? restrictedStates
       : restrictedStates
