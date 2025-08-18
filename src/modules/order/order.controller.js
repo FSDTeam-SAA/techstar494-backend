@@ -465,7 +465,7 @@ const getOrderById = async (req, res) => {
 
 const getAllOrders = async (req, res) => {
   try {
-    const { search, page = 1, limit = 10 } = req.query;
+    const { search, status, productName, page = 1, limit = 10 } = req.query;
 
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
@@ -482,21 +482,6 @@ const getAllOrders = async (req, res) => {
         },
       },
       { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
-
-      // Optional search
-      ...(search && search.trim() !== ""
-        ? [
-            {
-              $match: {
-                $or: [
-                  { "user.firstName": { $regex: search, $options: "i" } },
-                  { "user.lastName": { $regex: search, $options: "i" } },
-                  { "user.userName": { $regex: search, $options: "i" } },
-                ],
-              },
-            },
-          ]
-        : []),
 
       // Lookup single product orders
       {
@@ -550,6 +535,30 @@ const getAllOrders = async (req, res) => {
           newRoot: {
             $mergeObjects: ["$doc", { cartProducts: "$cartProducts" }],
           },
+        },
+      },
+
+      // ✅ Apply filters (search, status, productName)
+      {
+        $match: {
+          ...(search && search.trim() !== ""
+            ? {
+                $or: [
+                  { "user.firstName": { $regex: search, $options: "i" } },
+                  { "user.lastName": { $regex: search, $options: "i" } },
+                  { "user.userName": { $regex: search, $options: "i" } },
+                ],
+              }
+            : {}),
+          ...(status ? { status } : {}),
+          ...(productName && productName.trim() !== ""
+            ? {
+                $or: [
+                  { "product.name": { $regex: productName, $options: "i" } },
+                  { "cartProducts.name": { $regex: productName, $options: "i" } },
+                ],
+              }
+            : {}),
         },
       },
 
@@ -612,6 +621,7 @@ const getAllOrders = async (req, res) => {
     });
   }
 };
+
 
 
 const getSaveBillingInfo = async (req, res) => {
