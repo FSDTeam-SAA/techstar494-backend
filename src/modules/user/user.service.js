@@ -145,7 +145,43 @@ const resendOtpCode = async ({ email }) => {
   return result;
 };
 
-const getAllUsersFromDb = async (search, filter) => {
+// const getAllUsersFromDb = async (search, filter) => {
+//   const query = { isVerified: true };
+
+//   if (search) {
+//     query.$or = [
+//       { firstName: new RegExp(search, "i") },
+//       { lastName: new RegExp(search, "i") },
+//       { username: new RegExp(search, "i") },
+//       { userName: new RegExp(search, "i") },
+//     ];
+//   }
+
+//   const now = new Date();
+//   let startDate, endDate;
+
+//   if (filter === "this_month") {
+//     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+//     endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+//     query.createdAt = { $gte: startDate, $lt: endDate };
+//   } else if (filter === "previous_month") {
+//     startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+//     endDate = new Date(now.getFullYear(), now.getMonth(), 1);
+//     query.createdAt = { $gte: startDate, $lt: endDate };
+//   } else if (filter === "last_year") {
+//     startDate = new Date(now.getFullYear() - 1, 0, 1);
+//     endDate = new Date(now.getFullYear(), 0, 1);
+//     query.createdAt = { $gte: startDate, $lt: endDate };
+//   }
+
+//   const users = await User.find(query).select(
+//     "username email role firstName lastName userName imageLink points createdAt updatedAt"
+//   );
+
+//   return users;
+// };
+
+const getAllUsersFromDb = async (search, filter, page = 1, limit = 10) => {
   const query = { isVerified: true };
 
   if (search) {
@@ -174,12 +210,23 @@ const getAllUsersFromDb = async (search, filter) => {
     query.createdAt = { $gte: startDate, $lt: endDate };
   }
 
-  const users = await User.find(query).select(
-    "username email role firstName lastName userName imageLink points createdAt updatedAt"
-  );
+  const skip = (page - 1) * limit;
 
-  return users;
+  const [users, total] = await Promise.all([
+    User.find(query)
+      .select(
+        "username email role firstName lastName userName imageLink points createdAt updatedAt"
+      )
+      .skip(skip)
+      .limit(limit),
+    User.countDocuments(query),
+  ]);
+
+  return { users, total };
 };
+
+
+
 
 const getMyProfileFromDb = async (email) => {
   const user = await User.findOne(email).select(
