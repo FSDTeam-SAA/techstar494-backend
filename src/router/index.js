@@ -13,6 +13,9 @@ const FaqRouter = require("../modules/faq/faq.router");
 const fdaDisclaimerRouter = require("../modules/fdaDisclaimer/fdaDisclaimer.router");
 const legalDocumentsRouter = require("../modules/legalDocuments/legalDocuments.router");
 const subscriberRouter = require("../modules/subscriber/subscriber.router");
+const PromotionRouter = require("../modules/promotions/promotions.router");
+const coaRouter = require("../modules/coa/coa.router");
+const dashboardRouter = require("../modules/dashboard/dashboard.router");
 
 const router = Router();
 
@@ -72,6 +75,18 @@ const moduleRouter = [
   {
     path: "/subscriber",
     router: subscriberRouter,
+  },
+  {
+    path: "/promotions",
+    router: PromotionRouter,
+  },
+  {
+    path: "/coas",
+    router: coaRouter,
+  },
+  {
+    path: "/dashboard",
+    router: dashboardRouter,
   },
 ];
 

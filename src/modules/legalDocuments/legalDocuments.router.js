@@ -7,6 +7,7 @@ const {
   legality,
   updateDocument,
   getFda,
+  getLabs,
 } = require("../../modules/legalDocuments/legalDocuments.controller");
 const auth = require("../../middleware/auth");
 const USER_ROLE = require("../user/user.constant");
@@ -19,6 +20,7 @@ router.get("/terms-conditions", termsConditions);
 router.get("/legality", legality);
 router.get("/refund-policy", refundPolicy);
 router.get("/fda", getFda);
+router.get("/labs", getLabs);
 router.put("/update/:id", auth(USER_ROLE.admin), updateDocument);
 
 const legalDocumentsRouter = router;
