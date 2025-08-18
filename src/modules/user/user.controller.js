@@ -74,6 +74,38 @@ const resendOtpCode = async (req, res) => {
 // };
 
 
+// const getAllUsers = async (req, res) => {
+//   try {
+//     const { search, filter, page = 1, limit = 10 } = req.query;
+
+//     const { users, total } = await userService.getAllUsersFromDb(
+//       search,
+//       filter,
+//       parseInt(page, 10),
+//       parseInt(limit, 10)
+//     );
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Users retrieved successfully",
+//       data: users,
+//       meta: {
+//         total,
+//         page: parseInt(page, 10),
+//         limit: parseInt(limit, 10),
+//         totalPages: Math.ceil(total / limit),
+//       },
+//     });
+//   } catch (error) {
+//     return res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+
+
+
+
+
 const getAllUsers = async (req, res) => {
   try {
     const { search, filter, page = 1, limit = 10 } = req.query;
@@ -100,6 +132,9 @@ const getAllUsers = async (req, res) => {
     return res.status(400).json({ success: false, message: error.message });
   }
 };
+
+
+
 
 
 

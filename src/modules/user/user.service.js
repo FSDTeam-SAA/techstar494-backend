@@ -181,15 +181,62 @@ const resendOtpCode = async ({ email }) => {
 //   return users;
 // };
 
+// const getAllUsersFromDb = async (search, filter, page = 1, limit = 10) => {
+//   const query = { isVerified: true };
+
+//   if (search) {
+//     query.$or = [
+//       { firstName: new RegExp(search, "i") },
+//       { lastName: new RegExp(search, "i") },
+//       { username: new RegExp(search, "i") },
+//       { userName: new RegExp(search, "i") },
+//     ];
+//   }
+
+//   const now = new Date();
+//   let startDate, endDate;
+
+//   if (filter === "this_month") {
+//     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+//     endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+//     query.createdAt = { $gte: startDate, $lt: endDate };
+//   } else if (filter === "previous_month") {
+//     startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+//     endDate = new Date(now.getFullYear(), now.getMonth(), 1);
+//     query.createdAt = { $gte: startDate, $lt: endDate };
+//   } else if (filter === "last_year") {
+//     startDate = new Date(now.getFullYear() - 1, 0, 1);
+//     endDate = new Date(now.getFullYear(), 0, 1);
+//     query.createdAt = { $gte: startDate, $lt: endDate };
+//   }
+
+//   const skip = (page - 1) * limit;
+
+//   const [users, total] = await Promise.all([
+//     User.find(query)
+//       .select(
+//         "username email role firstName lastName userName imageLink points createdAt updatedAt"
+//       )
+//       .skip(skip)
+//       .limit(limit),
+//     User.countDocuments(query),
+//   ]);
+
+//   return { users, total };
+// };
+
+
 const getAllUsersFromDb = async (search, filter, page = 1, limit = 10) => {
   const query = { isVerified: true };
 
-  if (search) {
+  // Search by name or email using regex
+  if (search && search.trim() !== "") {
     query.$or = [
-      { firstName: new RegExp(search, "i") },
-      { lastName: new RegExp(search, "i") },
-      { username: new RegExp(search, "i") },
-      { userName: new RegExp(search, "i") },
+      { firstName: { $regex: search, $options: "i" } },
+      { lastName: { $regex: search, $options: "i" } },
+      { username: { $regex: search, $options: "i" } },
+      { userName: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } }, // <-- search by email
     ];
   }
 
@@ -224,7 +271,6 @@ const getAllUsersFromDb = async (search, filter, page = 1, limit = 10) => {
 
   return { users, total };
 };
-
 
 
 
