@@ -173,7 +173,17 @@ const getProducts = async (req, res, next) => {
       sortOptions = { createdAt: 1 };
     }
 
-    query.expirationDate = { $gt: new Date() };
+    // if (req.query.includeExpired !== "true") {
+    //   query.expirationDate = { $gt: new Date() };
+    // }
+
+    // console.log({
+    //   query,
+    //   page,
+    //   limit,
+    //   skip,
+    //   sortOptions,
+    // });
 
     const [products, total] = await Promise.all([
       Product.find(query).sort(sortOptions).skip(skip).limit(limit).lean(),
