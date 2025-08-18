@@ -15,6 +15,7 @@ const legalDocumentsRouter = require("../modules/legalDocuments/legalDocuments.r
 const subscriberRouter = require("../modules/subscriber/subscriber.router");
 const PromotionRouter = require("../modules/promotions/promotions.router");
 const coaRouter = require("../modules/coa/coa.router");
+const dashboardRouter = require("../modules/dashboard/dashboard.router");
 
 const router = Router();
 
@@ -82,6 +83,10 @@ const moduleRouter = [
   {
     path: "/coas",
     router: coaRouter,
+  },
+  {
+    path: "/dashboard",
+    router: dashboardRouter,
   },
 ];
 
