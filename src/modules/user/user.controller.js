@@ -101,11 +101,6 @@ const resendOtpCode = async (req, res) => {
 //   }
 // };
 
-
-
-
-
-
 const getAllUsers = async (req, res) => {
   try {
     const { search, filter, page = 1, limit = 10 } = req.query;
@@ -132,7 +127,6 @@ const getAllUsers = async (req, res) => {
     return res.status(400).json({ success: false, message: error.message });
   }
 };
-
 
 
 

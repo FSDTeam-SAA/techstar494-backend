@@ -226,37 +226,55 @@ const resendOtpCode = async ({ email }) => {
 // };
 
 
+// Service
 const getAllUsersFromDb = async (search, filter, page = 1, limit = 10) => {
   const query = { isVerified: true };
 
-  // Search by name or email using regex
+  // 🔍 Search by name/email
   if (search && search.trim() !== "") {
     query.$or = [
       { firstName: { $regex: search, $options: "i" } },
       { lastName: { $regex: search, $options: "i" } },
       { username: { $regex: search, $options: "i" } },
       { userName: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } }, // <-- search by email
+      { email: { $regex: search, $options: "i" } },
     ];
   }
 
+  // 📅 Date filtering
   const now = new Date();
   let startDate, endDate;
 
-  if (filter === "this_month") {
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    query.createdAt = { $gte: startDate, $lt: endDate };
-  } else if (filter === "previous_month") {
-    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    endDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    query.createdAt = { $gte: startDate, $lt: endDate };
-  } else if (filter === "last_year") {
-    startDate = new Date(now.getFullYear() - 1, 0, 1);
-    endDate = new Date(now.getFullYear(), 0, 1);
+  switch (filter) {
+    case "this_month":
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      break;
+
+    case "previous_month":
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+
+    case "this_year":
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear() + 1, 0, 1);
+      break;
+
+    case "last_year":
+      startDate = new Date(now.getFullYear() - 1, 0, 1);
+      endDate = new Date(now.getFullYear(), 0, 1);
+      break;
+
+    default:
+      break;
+  }
+
+  if (startDate && endDate) {
     query.createdAt = { $gte: startDate, $lt: endDate };
   }
 
+  // 📌 Pagination
   const skip = (page - 1) * limit;
 
   const [users, total] = await Promise.all([
