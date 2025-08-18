@@ -339,9 +339,137 @@ const getOrderById = async (req, res) => {
   }
 };
 
+// const getAllOrders = async (req, res) => {
+//   try {
+//     const { search } = req.query;
+
+//     const pipeline = [
+//       // Lookup user
+//       {
+//         $lookup: {
+//           from: "users",
+//           localField: "userId",
+//           foreignField: "_id",
+//           as: "user",
+//         },
+//       },
+//       { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+//       // Optional search
+//       ...(search && search.trim() !== ""
+//         ? [
+//             {
+//               $match: {
+//                 $or: [
+//                   { "user.firstName": { $regex: search, $options: "i" } },
+//                   { "user.lastName": { $regex: search, $options: "i" } },
+//                   { "user.userName": { $regex: search, $options: "i" } },
+//                 ],
+//               },
+//             },
+//           ]
+//         : []),
+
+//       // Lookup single product orders
+//       {
+//         $lookup: {
+//           from: "products",
+//           localField: "product",
+//           foreignField: "_id",
+//           as: "product",
+//         },
+//       },
+//       { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
+
+//       // Lookup products from cartItems
+//       {
+//         $lookup: {
+//           from: "carts",
+//           localField: "cartItems.cartId",
+//           foreignField: "_id",
+//           as: "cartDetails",
+//         },
+//       },
+//       {
+//         $unwind: {
+//           path: "$cartDetails",
+//           preserveNullAndEmptyArrays: true,
+//         },
+//       },
+
+//       // Lookup products for those cartDetails
+//       {
+//         $lookup: {
+//           from: "products",
+//           localField: "cartDetails.product",
+//           foreignField: "_id",
+//           as: "cartProduct",
+//         },
+//       },
+
+//       // Group back cart products
+//       {
+//         $group: {
+//           _id: "$_id",
+//           doc: { $first: "$$ROOT" },
+//           cartProducts: { $push: { $arrayElemAt: ["$cartProduct", 0] } },
+//         },
+//       },
+
+//       // Merge cartProducts into the root document
+//       {
+//         $replaceRoot: {
+//           newRoot: {
+//             $mergeObjects: ["$doc", { cartProducts: "$cartProducts" }],
+//           },
+//         },
+//       },
+
+//       // Final projection
+//       {
+//         $project: {
+//           _id: 1,
+//           user: {
+//             firstName: 1,
+//             lastName: 1,
+//             userName: 1,
+//             email: 1,
+//           },
+//           product: { name: 1, photo: 1, category: 1 },
+//           cartProducts: { name: 1, photo: 1, category: 1 },
+//           cartItems: 1,
+//           totalAmount: 1,
+//           status: 1,
+//           paymentMethod: 1,
+//           paymentStatus: 1,
+//           purchaseDate: 1,
+//         },
+//       },
+//     ];
+
+//     const orders = await Order.aggregate(pipeline);
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Orders fetched successfully",
+//       data: orders,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
+
 const getAllOrders = async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, status, productName, page = 1, limit = 10 } = req.query;
+
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
 
     const pipeline = [
       // Lookup user
@@ -354,21 +482,6 @@ const getAllOrders = async (req, res) => {
         },
       },
       { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
-
-      // Optional search
-      ...(search && search.trim() !== ""
-        ? [
-            {
-              $match: {
-                $or: [
-                  { "user.firstName": { $regex: search, $options: "i" } },
-                  { "user.lastName": { $regex: search, $options: "i" } },
-                  { "user.userName": { $regex: search, $options: "i" } },
-                ],
-              },
-            },
-          ]
-        : []),
 
       // Lookup single product orders
       {
@@ -425,6 +538,30 @@ const getAllOrders = async (req, res) => {
         },
       },
 
+      // ✅ Apply filters (search, status, productName)
+      {
+        $match: {
+          ...(search && search.trim() !== ""
+            ? {
+                $or: [
+                  { "user.firstName": { $regex: search, $options: "i" } },
+                  { "user.lastName": { $regex: search, $options: "i" } },
+                  { "user.userName": { $regex: search, $options: "i" } },
+                ],
+              }
+            : {}),
+          ...(status ? { status } : {}),
+          ...(productName && productName.trim() !== ""
+            ? {
+                $or: [
+                  { "product.name": { $regex: productName, $options: "i" } },
+                  { "cartProducts.name": { $regex: productName, $options: "i" } },
+                ],
+              }
+            : {}),
+        },
+      },
+
       // Final projection
       {
         $project: {
@@ -447,12 +584,35 @@ const getAllOrders = async (req, res) => {
       },
     ];
 
-    const orders = await Order.aggregate(pipeline);
+    // Apply pagination with $facet
+    const ordersResult = await Order.aggregate([
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [...pipeline, { $skip: skip }, { $limit: limitNumber }],
+        },
+      },
+      {
+        $project: {
+          data: 1,
+          total: { $arrayElemAt: ["$metadata.total", 0] },
+        },
+      },
+    ]);
+
+    const orders = ordersResult[0]?.data || [];
+    const total = ordersResult[0]?.total || 0;
 
     res.status(200).json({
       success: true,
       message: "Orders fetched successfully",
       data: orders,
+      meta: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(total / limitNumber),
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -461,6 +621,8 @@ const getAllOrders = async (req, res) => {
     });
   }
 };
+
+
 
 const getSaveBillingInfo = async (req, res) => {
   try {
