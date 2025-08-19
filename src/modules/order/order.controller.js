@@ -110,7 +110,7 @@ const createOrderByProduct = async (req, res) => {
   }
 };
 
-//TODO: issue is fixed and now it is working. If need any changes, i add comment there. I think you will understand.
+
 const createOrderByCart = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
