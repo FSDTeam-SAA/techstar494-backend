@@ -36,6 +36,20 @@ const createProduct = async (req, res, next) => {
       });
     }
 
+    if (!prices) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide at least one price",
+      });
+    }
+
+    if (!req.files || !req.files.photo || !req.files.coas) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide product photo and COAs",
+      });
+    }
+
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
       return res.status(400).json({
