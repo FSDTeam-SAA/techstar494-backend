@@ -65,8 +65,9 @@ const productSchema = new mongoose.Schema(
     dosage: {
       type: String,
       enum: ["Low Potency", "Medium Potency", "High Potency"],
+      required: true,
     },
-    coas: [{ type: String }],
+    coas: [{ type: String, required: true }],
     restrictedStates: [String],
     expirationDate: { type: Date },
   },

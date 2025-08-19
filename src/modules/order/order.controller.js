@@ -110,7 +110,6 @@ const createOrderByProduct = async (req, res) => {
   }
 };
 
-
 const createOrderByCart = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -339,130 +338,6 @@ const getOrderById = async (req, res) => {
   }
 };
 
-// const getAllOrders = async (req, res) => {
-//   try {
-//     const { search } = req.query;
-
-//     const pipeline = [
-//       // Lookup user
-//       {
-//         $lookup: {
-//           from: "users",
-//           localField: "userId",
-//           foreignField: "_id",
-//           as: "user",
-//         },
-//       },
-//       { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
-
-//       // Optional search
-//       ...(search && search.trim() !== ""
-//         ? [
-//             {
-//               $match: {
-//                 $or: [
-//                   { "user.firstName": { $regex: search, $options: "i" } },
-//                   { "user.lastName": { $regex: search, $options: "i" } },
-//                   { "user.userName": { $regex: search, $options: "i" } },
-//                 ],
-//               },
-//             },
-//           ]
-//         : []),
-
-//       // Lookup single product orders
-//       {
-//         $lookup: {
-//           from: "products",
-//           localField: "product",
-//           foreignField: "_id",
-//           as: "product",
-//         },
-//       },
-//       { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
-
-//       // Lookup products from cartItems
-//       {
-//         $lookup: {
-//           from: "carts",
-//           localField: "cartItems.cartId",
-//           foreignField: "_id",
-//           as: "cartDetails",
-//         },
-//       },
-//       {
-//         $unwind: {
-//           path: "$cartDetails",
-//           preserveNullAndEmptyArrays: true,
-//         },
-//       },
-
-//       // Lookup products for those cartDetails
-//       {
-//         $lookup: {
-//           from: "products",
-//           localField: "cartDetails.product",
-//           foreignField: "_id",
-//           as: "cartProduct",
-//         },
-//       },
-
-//       // Group back cart products
-//       {
-//         $group: {
-//           _id: "$_id",
-//           doc: { $first: "$$ROOT" },
-//           cartProducts: { $push: { $arrayElemAt: ["$cartProduct", 0] } },
-//         },
-//       },
-
-//       // Merge cartProducts into the root document
-//       {
-//         $replaceRoot: {
-//           newRoot: {
-//             $mergeObjects: ["$doc", { cartProducts: "$cartProducts" }],
-//           },
-//         },
-//       },
-
-//       // Final projection
-//       {
-//         $project: {
-//           _id: 1,
-//           user: {
-//             firstName: 1,
-//             lastName: 1,
-//             userName: 1,
-//             email: 1,
-//           },
-//           product: { name: 1, photo: 1, category: 1 },
-//           cartProducts: { name: 1, photo: 1, category: 1 },
-//           cartItems: 1,
-//           totalAmount: 1,
-//           status: 1,
-//           paymentMethod: 1,
-//           paymentStatus: 1,
-//           purchaseDate: 1,
-//         },
-//       },
-//     ];
-
-//     const orders = await Order.aggregate(pipeline);
-
-//     res.status(200).json({
-//       success: true,
-//       message: "Orders fetched successfully",
-//       data: orders,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// };
-
-
 const getAllOrders = async (req, res) => {
   try {
     const { search, status, productName, page = 1, limit = 10 } = req.query;
@@ -555,7 +430,9 @@ const getAllOrders = async (req, res) => {
             ? {
                 $or: [
                   { "product.name": { $regex: productName, $options: "i" } },
-                  { "cartProducts.name": { $regex: productName, $options: "i" } },
+                  {
+                    "cartProducts.name": { $regex: productName, $options: "i" },
+                  },
                 ],
               }
             : {}),
@@ -621,8 +498,6 @@ const getAllOrders = async (req, res) => {
     });
   }
 };
-
-
 
 const getSaveBillingInfo = async (req, res) => {
   try {
@@ -696,6 +571,10 @@ const cancelOrder = async (req, res) => {
 
     const order = await Order.findOne({ _id: orderId, userId: user._id });
     if (!order) throw new Error("Your order not found");
+
+    if (order.paymentMethod === "Stripe") {
+      throw new Error("You can't cancel online payment order");
+    }
 
     if (order.status === "Cancelled") {
       throw new Error("Order already cancelled");
