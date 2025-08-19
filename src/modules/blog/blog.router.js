@@ -18,10 +18,7 @@ router.post(
   createBlog
 );
 
-router.get(
-  "/",
-  getAllBlog
-);
+router.get("/", getAllBlog);
 
 router.get("/:id", getSingleBlog);
 
