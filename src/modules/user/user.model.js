@@ -16,6 +16,10 @@ const userModel = new Schema(
       type: String,
       required: [true, "Username is required"],
     },
+    bio: {
+      type: String,
+      default: null,
+    },
     email: {
       type: String,
       required: true,
