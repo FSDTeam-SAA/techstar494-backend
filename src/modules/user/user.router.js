@@ -35,20 +35,7 @@ router.put(
   "/update-profile",
   auth(USER_ROLE.admin, USER_ROLE.user),
   upload.single("image"),
-  (req, res, next) => {
-    if (req.body?.data) {
-      try {
-        req.body = JSON.parse(req.body.data);
-      } catch (err) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid JSON format in 'data' field",
-        });
-      }
-    }
-    // If no `data`, req.body remains an empty object or unchanged
-    next();
-  },
+
   userController.updateUserProfile
 );
 
