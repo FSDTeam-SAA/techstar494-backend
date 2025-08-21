@@ -26,10 +26,14 @@ router.post(
 );
 
 router.get("/my-order", auth(USER_ROLE.user, USER_ROLE.admin), getUserOrders);
-router.get("/", getAllOrders);
-router.get("/billing-info", auth(USER_ROLE.user, USER_ROLE.admin), getSaveBillingInfo);
+router.get("/", auth(USER_ROLE.admin), getAllOrders);
+router.get(
+  "/billing-info",
+  auth(USER_ROLE.user, USER_ROLE.admin),
+  getSaveBillingInfo
+);
 
-router.get("/:orderId", getOrderById);
+router.get("/:orderId", auth(USER_ROLE.user, USER_ROLE.admin), getOrderById);
 
 router.put(
   "/status/:orderId",
