@@ -13,6 +13,7 @@ const orderSchema = new mongoose.Schema(
     cartItems: [
       {
         cartId: { type: mongoose.Schema.Types.ObjectId, ref: "Cart" },
+        slug: { type: String },
         name: { type: String },
         pricePerUnit: { type: Number },
         quantity: { type: Number },

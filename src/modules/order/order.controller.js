@@ -180,6 +180,7 @@ const createOrderByCart = async (req, res) => {
         // Push product reference and details directly into order
         orderData.cartItems.push({
           cartId: cart.product._id,
+          slug: cart.product.slug,
           name: cart.product.name,
           pricePerUnit: cart.pricePerUnit,
           quantity: cart.quantity,
@@ -291,7 +292,7 @@ const getUserOrders = async (req, res) => {
     const orders = await Order.find({ userId: user._id })
       .populate({
         path: "product",
-        select: "name photo category",
+        select: "name photo category slug",
       })
       .populate({
         path: "userId",
@@ -300,7 +301,7 @@ const getUserOrders = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Orders fetched successfully",
+      message: "Orders fetched successfully....",
       data: orders,
     });
   } catch (error) {
@@ -592,16 +593,33 @@ const cancelOrder = async (req, res) => {
       select: "name photo category",
     });
 
-    // 2. Restore quantity in product.prices[]
-    const product = await Product.findById(order.product);
-    if (!product) throw new Error("Associated product not found");
+    // 2. Restore product quantities
+    if (order.product && order.quantity) {
+      // Single product order
+      const product = await Product.findById(order.product);
+      if (product) {
+        const priceEntry = product.prices.find((p) => p.unit === order.unit);
+        if (priceEntry) {
+          priceEntry.quantity += order.quantity;
+          await product.save();
+        }
+      }
+    } else if (order.cartItems && order.cartItems.length > 0) {
+      // Multiple cart items
+      for (const item of order.cartItems) {
+        const product = await Product.findById(item.cartId);
+        if (product) {
+          const priceEntry = product.prices.find((p) => p.unit === item.unit);
+          if (priceEntry) {
+            priceEntry.quantity += item.quantity;
+            await product.save();
+          }
+        }
+      }
+    }
 
-    const priceEntry = product.prices.find((p) => p.unit === order.unit);
-    if (!priceEntry) throw new Error(`Unit ${order.unit} not found in product`);
-
-    priceEntry.quantity += order.quantity;
-
-    await product.save();
+    // Remove the order after restoring stock
+    await Order.findOneAndDelete({ _id: orderId, userId: user._id });
 
     return res.status(200).json({
       success: true,

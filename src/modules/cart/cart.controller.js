@@ -51,7 +51,7 @@ const addToCart = async (req, res) => {
     const cart = await Cart.find({ userId: user._id })
       .populate({
         path: "product",
-        select: "name photo",
+        select: "name photo slug",
       })
       .populate({
         path: "userId",
