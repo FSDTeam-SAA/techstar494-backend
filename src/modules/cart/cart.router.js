@@ -12,11 +12,19 @@ const USER_ROLE = require("../user/user.constant");
 
 const router = express.Router();
 
-router.post("/addToCart", auth(USER_ROLE.user), addToCart);
-router.get("/", auth(USER_ROLE.user), getMyCartItems);
+router.post("/addToCart", auth(USER_ROLE.user, USER_ROLE.admin), addToCart);
+router.get("/", auth(USER_ROLE.user, USER_ROLE.admin), getMyCartItems);
 // router.get("/", getCart);
-router.put("/:cartId", auth(USER_ROLE.user), updateCartItemQuantity);
-router.delete("/remove/:cartId", auth(USER_ROLE.user), removeFromCart);
-router.delete("/all-clear", auth(USER_ROLE.user), clearCart);
+router.put(
+  "/:cartId",
+  auth(USER_ROLE.user, USER_ROLE.admin),
+  updateCartItemQuantity
+);
+router.delete(
+  "/remove/:cartId",
+  auth(USER_ROLE.user, USER_ROLE.admin),
+  removeFromCart
+);
+router.delete("/all-clear", auth(USER_ROLE.user, USER_ROLE.admin), clearCart);
 
 module.exports = router;
