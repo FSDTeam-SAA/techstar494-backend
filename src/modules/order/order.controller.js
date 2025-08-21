@@ -89,7 +89,7 @@ const createOrderByProduct = async (req, res) => {
     const result = await Order.findById(newOrder._id)
       .populate({
         path: "product",
-        select: "name photo category",
+        select: "name photo category slug",
       })
       .populate({
         path: "userId",
@@ -536,23 +536,61 @@ const updateOrderStatus = async (req, res) => {
     const { orderId } = req.params;
     const { status } = req.body;
 
-    if (!status) {
-      return res.status(400).json({ message: "Status is required" });
-    }
-
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      { status },
-      { new: true }
-    );
-
+    const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    res
-      .status(200)
-      .json({ success: true, message: "Order status updated", order });
+    if (order.status === "Delivered") {
+      return res.status(400).json({ message: "Order already delivered" });
+    }
+    if (order.status === "Cancelled") {
+      return res.status(400).json({ message: "Order already cancelled" });
+    }
+
+    if (order.paymentMethod === "Stripe" && status === "Cancelled") {
+      return res
+        .status(400)
+        .json({ message: "You can't cancel online payment order" });
+    }
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
+    // 👉 Restore stock only if admin cancels the order
+    if (status === "Cancelled") {
+      if (order.product && order.quantity) {
+        // Single product order
+        const product = await Product.findById(order.product);
+        if (product) {
+          const priceEntry = product.prices.find((p) => p.unit === order.unit);
+          if (priceEntry) {
+            priceEntry.quantity += order.quantity;
+            await product.save();
+          }
+        }
+      } else if (order.cartItems && order.cartItems.length > 0) {
+        // Multiple cart items
+        for (const item of order.cartItems) {
+          const product = await Product.findById(item.cartId);
+          if (product) {
+            const priceEntry = product.prices.find((p) => p.unit === item.unit);
+            if (priceEntry) {
+              priceEntry.quantity += item.quantity;
+              await product.save();
+            }
+          }
+        }
+      }
+    }
+
+    await Order.findByIdAndUpdate(orderId, { status }, { new: true });
+
+    res.status(200).json({
+      success: true,
+      message: `Order status updated to ${status}`,
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -584,7 +622,7 @@ const cancelOrder = async (req, res) => {
     }
 
     // 1. Update order status
-    const result = await Order.findOneAndUpdate(
+    await Order.findOneAndUpdate(
       { _id: orderId, userId: user._id },
       { status: "Cancelled" },
       { new: true }
@@ -624,7 +662,6 @@ const cancelOrder = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Order cancelled successfully",
-      data: result,
     });
   } catch (error) {
     return res.status(500).json({
