@@ -61,6 +61,10 @@ const createOrderByProduct = async (req, res) => {
 
     //  Handle Points Payment
     if (paymentMethod === "Points") {
+      if (user.points < 200) {
+        throw new Error("You need at least 200 points to pay with points");
+      }
+
       const pointsNeeded = Math.ceil(finalAmount / 0.1);
 
       if (user.points < pointsNeeded) {
@@ -72,7 +76,7 @@ const createOrderByProduct = async (req, res) => {
       user.points -= pointsNeeded;
       await user.save();
 
-      paymentStatus = "Paid";
+      // paymentStatus = "Paid";
       finalAmount = 0;
     }
 
@@ -246,6 +250,7 @@ const createOrderByCart = async (req, res) => {
     }
 
     // Apply coupon if provided
+    let finalAmount = baseAmount;
     if (couponCode) {
       const coupon = await couponMaking
         .findOne({ couponCode })
@@ -257,27 +262,42 @@ const createOrderByCart = async (req, res) => {
       const discountAmount = parseFloat(
         ((baseAmount * coupon.discount) / 100).toFixed(2)
       );
-      orderData.totalAmount = parseFloat(
-        (baseAmount - discountAmount).toFixed(2)
-      );
-    } else {
-      orderData.totalAmount = parseFloat(baseAmount.toFixed(2));
+      finalAmount = parseFloat((baseAmount - discountAmount).toFixed(2));
+    }
+
+    orderData.totalAmount = parseFloat(finalAmount.toFixed(2));
+
+    // ✅ Handle Points payment
+    if (paymentMethod === "Points") {
+      if (user.points < 200) {
+        throw new Error("You need at least 200 points to pay with points");
+      }
+
+      const pointsNeeded = Math.ceil(finalAmount / 0.1); // 1 point = $0.10
+
+      if (user.points < pointsNeeded) {
+        throw new Error(
+          `You need at least ${pointsNeeded} points to pay with points`
+        );
+      }
+
+      // Deduct points
+      user.points -= pointsNeeded;
+      await user.save({ session });
+
+      // Set order as paid
+      // orderData.paymentStatus = "Paid";
+      orderData.totalAmount = 0; // since paid fully by points
     }
 
     // Create order
     const newOrderArr = await Order.create([orderData], { session });
     const newOrder = newOrderArr[0];
 
-    // Remove processed cart items immediately
+    // Remove processed cart items
     await Cart.deleteMany({
       _id: { $in: processedCartIds },
     }).session(session);
-
-    // const pointToAdd = Math.ceil(orderData.totalAmount);
-
-    // await User.findByIdAndUpdate(user._id, {
-    //   $push: { points: pointToAdd },
-    // }).session(session);
 
     // Populate products in response
     const populatedOrder = await Order.findById(newOrder._id)
