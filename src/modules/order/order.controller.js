@@ -59,7 +59,8 @@ const createOrderByProduct = async (req, res) => {
 
     console.log("Final amount after discount:", finalAmount);
 
-    //  Handle Points Payment
+    // Handle Points Payment
+    let pointsUsed = 0; // track points spent
     if (paymentMethod === "Points") {
       if (user.points < 200) {
         throw new Error("You need at least 200 points to pay with points");
@@ -76,8 +77,8 @@ const createOrderByProduct = async (req, res) => {
       user.points -= pointsNeeded;
       await user.save();
 
-      // paymentStatus = "Paid";
-      finalAmount = 0;
+      pointsUsed = pointsNeeded; // store in order
+      finalAmount = 0; // no cash since points covered it
     }
 
     const newOrder = new Order({
@@ -92,6 +93,7 @@ const createOrderByProduct = async (req, res) => {
       totalAmount: Math.ceil(finalAmount),
       discountAmount: discount,
       couponUsed: couponCode || null,
+      pointsUsed,
       paymentDate: Date.now(),
     });
 
@@ -140,6 +142,7 @@ const createOrderByCart = async (req, res) => {
   try {
     const { userId } = req.user;
     const { billingInfo, paymentMethod, couponCode, cartItems } = req.body;
+    
 
     // Validate request body
     if (
@@ -267,13 +270,14 @@ const createOrderByCart = async (req, res) => {
 
     orderData.totalAmount = parseFloat(finalAmount.toFixed(2));
 
-    // ✅ Handle Points payment
+    // Handle Points Payment
+    let pointsUsed = 0; // track points spent
     if (paymentMethod === "Points") {
       if (user.points < 200) {
         throw new Error("You need at least 200 points to pay with points");
       }
 
-      const pointsNeeded = Math.ceil(finalAmount / 0.1); // 1 point = $0.10
+      const pointsNeeded = Math.ceil(finalAmount / 0.1);
 
       if (user.points < pointsNeeded) {
         throw new Error(
@@ -281,17 +285,19 @@ const createOrderByCart = async (req, res) => {
         );
       }
 
-      // Deduct points
       user.points -= pointsNeeded;
-      await user.save({ session });
+      await user.save();
 
-      // Set order as paid
-      // orderData.paymentStatus = "Paid";
-      orderData.totalAmount = 0; // since paid fully by points
+      pointsUsed = pointsNeeded; // store in order
+      finalAmount = 0; // no cash since points covered it
     }
 
+    orderData.pointsUsed = pointsUsed;
+
     // Create order
-    const newOrderArr = await Order.create([orderData], { session });
+    const newOrderArr = await Order.create([orderData], {
+      session,
+    });
     const newOrder = newOrderArr[0];
 
     // Remove processed cart items
@@ -692,6 +698,11 @@ const cancelOrder = async (req, res) => {
           await product.save();
         }
       }
+
+      if (order.paymentMethod === "Points" && order.pointsUsed > 0) {
+        user.points += order.pointsUsed;
+        await user.save();
+      }
     } else if (order.cartItems && order.cartItems.length > 0) {
       // Multiple cart items
       for (const item of order.cartItems) {
@@ -703,6 +714,11 @@ const cancelOrder = async (req, res) => {
             await product.save();
           }
         }
+      }
+
+      if (order.paymentMethod === "Points" && order.pointsUsed > 0) {
+        user.points += order.pointsUsed;
+        await user.save();
       }
     }
 

@@ -56,6 +56,10 @@ const orderSchema = new mongoose.Schema(
       enum: ["Stripe", "COD", "Points"],
       required: true,
     },
+    pointsUsed: {
+      type: Number,
+      default: 0,
+    },
     paymentStatus: {
       type: String,
       enum: ["Unpaid", "Paid", "Failed"],
