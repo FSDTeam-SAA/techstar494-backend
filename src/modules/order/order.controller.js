@@ -142,7 +142,6 @@ const createOrderByCart = async (req, res) => {
   try {
     const { userId } = req.user;
     const { billingInfo, paymentMethod, couponCode, cartItems } = req.body;
-    
 
     // Validate request body
     if (
@@ -620,6 +619,11 @@ const updateOrderStatus = async (req, res) => {
             await product.save();
           }
         }
+
+        if (order.paymentMethod === "Points" && order.pointsUsed > 0) {
+          user.points += order.pointsUsed;
+          await user.save();
+        }
       } else if (order.cartItems && order.cartItems.length > 0) {
         // Multiple cart items
         for (const item of order.cartItems) {
@@ -631,6 +635,11 @@ const updateOrderStatus = async (req, res) => {
               await product.save();
             }
           }
+        }
+
+        if (order.paymentMethod === "Points" && order.pointsUsed > 0) {
+          user.points += order.pointsUsed;
+          await user.save();
         }
       }
     }
