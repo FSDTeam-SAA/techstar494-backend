@@ -536,9 +536,18 @@ const updateOrderStatus = async (req, res) => {
     const { orderId } = req.params;
     const { status } = req.body;
 
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
+    }
+
+    const user = await User.findById(order.userId);
+    if (!user) {
+      throw new Error("User not found");
     }
 
     if (order.status === "Delivered") {
@@ -552,10 +561,6 @@ const updateOrderStatus = async (req, res) => {
       return res
         .status(400)
         .json({ message: "You can't cancel online payment order" });
-    }
-
-    if (!status) {
-      return res.status(400).json({ message: "Status is required" });
     }
 
     // 👉 Restore stock only if admin cancels the order
@@ -583,6 +588,12 @@ const updateOrderStatus = async (req, res) => {
           }
         }
       }
+    }
+
+    if (status === "Delivered") {
+      await User.findByIdAndUpdate(user._id, {
+        $inc: { points: Math.ceil(order.totalAmount) },
+      });
     }
 
     await Order.findByIdAndUpdate(orderId, { status }, { new: true });
