@@ -57,6 +57,25 @@ const createOrderByProduct = async (req, res) => {
       finalAmount = basePrice - discount;
     }
 
+    console.log("Final amount after discount:", finalAmount);
+
+    //  Handle Points Payment
+    if (paymentMethod === "Points") {
+      const pointsNeeded = Math.ceil(finalAmount / 0.1);
+
+      if (user.points < pointsNeeded) {
+        throw new Error(
+          `You need at least ${pointsNeeded} points to pay with points`
+        );
+      }
+
+      user.points -= pointsNeeded;
+      await user.save();
+
+      paymentStatus = "Paid";
+      finalAmount = 0;
+    }
+
     const newOrder = new Order({
       userId: user._id,
       product: product._id,

@@ -53,7 +53,7 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["Stripe", "COD"],
+      enum: ["Stripe", "COD", "Points"],
       required: true,
     },
     paymentStatus: {
