@@ -12,23 +12,30 @@ const USER_ROLE = require("../user/user.constant");
 
 const router = express.Router();
 
+// Upload multiple fields: one for image, one for optional categoryIcon
 router.post(
   "/",
-  upload.single("image"), // Single image upload
-  auth(USER_ROLE.admin),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "categoryIcon", maxCount: 1 },
+  ]),
+   
   createCategory
 );
 
-router.get("/", auth(USER_ROLE.admin), getCategories);
-router.get("/:id", auth(USER_ROLE.admin), getCategoryById);
+router.get("/",   getCategories);
+router.get("/:id",   getCategoryById);
 
 router.put(
   "/:id",
-  upload.single("image"), // Single image upload for update
-  auth(USER_ROLE.admin),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "categoryIcon", maxCount: 1 },
+  ]),
+   
   updateCategory
 );
 
-router.delete("/:id", auth(USER_ROLE.admin), deleteCategory);
+router.delete("/:id",   deleteCategory);
 
 module.exports = router;

@@ -13,6 +13,10 @@ const categorySchema = new mongoose.Schema(
       type: String,
       required: [true, "Category image is required"],
     },
+    categoryIcon: {
+      type: String, // Optional icon URL
+      required: false,
+    },
   },
   {
     timestamps: true,
@@ -22,7 +26,6 @@ const categorySchema = new mongoose.Schema(
   }
 );
 
-// Index for better query performance
 categorySchema.index({ categoryName: 1 });
 
 const Category =

@@ -9,20 +9,27 @@ const handleFileUpload = async (file) => {
 const createCategory = async (req, res, next) => {
   try {
     const { categoryName } = req.body;
-    const file = req.file;
+    const imageFile = req.files?.image?.[0];
+    const iconFile = req.files?.categoryIcon?.[0];
 
-    if (!file) {
+    if (!imageFile) {
       return res.status(400).json({
         success: false,
         message: "Category image is required",
       });
     }
 
-    const imageUrl = await handleFileUpload(file);
+    const imageUrl = await handleFileUpload(imageFile);
+    let iconUrl = null;
+
+    if (iconFile) {
+      iconUrl = await handleFileUpload(iconFile);
+    }
 
     const newCategory = new Category({
       categoryName,
       image: imageUrl,
+      categoryIcon: iconUrl,
     });
 
     const savedCategory = await newCategory.save();
@@ -42,6 +49,7 @@ const createCategory = async (req, res, next) => {
     next(error);
   }
 };
+
 
 const getCategories = async (req, res, next) => {
   try {
@@ -88,7 +96,8 @@ const updateCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { categoryName } = req.body;
-    const file = req.file;
+    const imageFile = req.files?.image?.[0];
+    const iconFile = req.files?.categoryIcon?.[0];
 
     const category = await Category.findById(id);
     if (!category) {
@@ -102,8 +111,12 @@ const updateCategory = async (req, res, next) => {
       ...(categoryName && { categoryName }),
     };
 
-    if (file) {
-      updateData.image = await handleFileUpload(file);
+    if (imageFile) {
+      updateData.image = await handleFileUpload(imageFile);
+    }
+
+    if (iconFile) {
+      updateData.categoryIcon = await handleFileUpload(iconFile);
     }
 
     const updatedCategory = await Category.findByIdAndUpdate(id, updateData, {
