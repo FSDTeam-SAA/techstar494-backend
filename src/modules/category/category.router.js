@@ -19,12 +19,12 @@ router.post(
     { name: "image", maxCount: 1 },
     { name: "categoryIcon", maxCount: 1 },
   ]),
-   
+  auth(USER_ROLE.admin),
   createCategory
 );
 
-router.get("/",   getCategories);
-router.get("/:id",   getCategoryById);
+router.get("/", auth(USER_ROLE.admin), getCategories);
+router.get("/:id", auth(USER_ROLE.admin), getCategoryById);
 
 router.put(
   "/:id",
@@ -32,10 +32,10 @@ router.put(
     { name: "image", maxCount: 1 },
     { name: "categoryIcon", maxCount: 1 },
   ]),
-   
+  auth(USER_ROLE.admin),
   updateCategory
 );
 
-router.delete("/:id",   deleteCategory);
+router.delete("/:id", auth(USER_ROLE.admin), deleteCategory);
 
 module.exports = router;
