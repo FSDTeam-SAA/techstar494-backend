@@ -23,8 +23,8 @@ router.post(
   createCategory
 );
 
-router.get("/", auth(USER_ROLE.admin), getCategories);
-router.get("/:id", auth(USER_ROLE.admin), getCategoryById);
+router.get("/", getCategories);
+router.get("/:id", getCategoryById);
 
 router.put(
   "/:id",
