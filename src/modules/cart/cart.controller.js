@@ -150,6 +150,56 @@ const updateCartItemQuantity = async (req, res) => {
   }
 };
 
+const updateDecreaseCartItemQuantity = async (req, res) => {
+  try {
+    const { email } = req.user;
+    const { cartId } = req.params;
+    const { quantity } = req.body;
+
+    if (!quantity || quantity <= 0) {
+      return res
+        .status(400)
+        .json({ message: "Quantity must be greater than 0" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const cart = await Cart.findById(cartId);
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const cartItem = await Cart.findOneAndUpdate(
+      { _id: cartId, userId: user._id },
+      { $inc: { quantity: -quantity } },
+      { new: true }
+    )
+      .populate({
+        path: "product",
+        select: "name photo",
+      })
+      .populate({
+        path: "userId",
+        select: "firstName lastName email",
+      });
+
+    return res.status(200).json({
+      success: true,
+      message: "Quantity updated successfully",
+      data: cartItem,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      error,
+    });
+  }
+};
+
 const removeFromCart = async (req, res) => {
   try {
     const { email } = req.user;
@@ -211,6 +261,7 @@ module.exports = {
   getMyCartItems,
   addToCart,
   updateCartItemQuantity,
+  updateDecreaseCartItemQuantity,
   removeFromCart,
   clearCart,
 };
